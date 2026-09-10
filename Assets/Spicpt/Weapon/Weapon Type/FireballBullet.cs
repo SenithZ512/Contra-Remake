@@ -5,6 +5,7 @@ public class FireballBullet : MonoBehaviour
     [Header("Bullet Settings")]
     [SerializeField] private float speed = 6f;
     [SerializeField] private float lifetime = 1f;
+    [SerializeField] private int damage = 1;
 
     [Header("Spin Orbit")]
     [SerializeField] private float orbitRadius = 0.3f;
@@ -78,8 +79,22 @@ public class FireballBullet : MonoBehaviour
         if (other.CompareTag("Player"))
             return;
 
+        EnemyHealth enemy =
+            other.GetComponentInParent<EnemyHealth>();
+
+        if (enemy != null)
+        {
+            enemy.TakeDamage(damage);
+            DestroyBullet();
+            return;
+        }
+
+        // พื้นต่างระดับ (One-Way Platform) ยิงทะลุได้ตามต้นฉบับ Contra
+        if (other.GetComponent<PlatformEffector2D>() != null)
+            return;
+
         if (other.gameObject.layer ==
-            LayerMask.NameToLayer("Ground"))
+            LayerMask.NameToLayer("groundLayer"))
         {
             DestroyBullet();
         }

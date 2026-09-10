@@ -5,6 +5,7 @@ public class LaserBullet : MonoBehaviour
     [Header("Bullet Settings")]
     [SerializeField] private float speed = 25f;
     [SerializeField] private float lifetime = 1.5f;
+    [SerializeField] private int damage = 1;
 
     private Rigidbody2D rb;
 
@@ -56,9 +57,23 @@ public class LaserBullet : MonoBehaviour
         if (other.CompareTag("Player"))
             return;
 
+        // เลเซอร์ทำดาเมจแล้ววิ่งต่อ ทะลุศัตรูได้หลายตัวในนัดเดียว
+        EnemyHealth enemy =
+            other.GetComponentInParent<EnemyHealth>();
+
+        if (enemy != null)
+        {
+            enemy.TakeDamage(damage);
+            return;
+        }
+
+        // พื้นต่างระดับ (One-Way Platform) ยิงทะลุได้ตามต้นฉบับ Contra
+        if (other.GetComponent<PlatformEffector2D>() != null)
+            return;
+
         // เลเซอร์ทะลุทุกอย่างได้ ไม่หยุดจนกว่าจะโดนกำแพง/พื้น
         if (other.gameObject.layer ==
-            LayerMask.NameToLayer("Ground"))
+            LayerMask.NameToLayer("groundLayer"))
         {
             DestroyBullet();
         }

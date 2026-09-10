@@ -1,10 +1,10 @@
-﻿using UnityEngine;
+using UnityEngine;
 
-public class Bullet : MonoBehaviour
+public class EnemyBullet : MonoBehaviour
 {
     [Header("Bullet Settings")]
-    [SerializeField] private float speed = 15f;
-    [SerializeField] private float lifetime = 2f;
+    [SerializeField] private float speed = 8f;
+    [SerializeField] private float lifetime = 3f;
     [SerializeField] private int damage = 1;
 
     private Rigidbody2D rb;
@@ -16,7 +16,7 @@ public class Bullet : MonoBehaviour
         if (rb == null)
         {
             Debug.LogError(
-                "Bullet: ต้องมี Rigidbody2D บน Bullet"
+                "EnemyBullet: ต้องมี Rigidbody2D"
             );
         }
     }
@@ -33,23 +33,16 @@ public class Bullet : MonoBehaviour
 
         direction.Normalize();
 
-        // ล้างความเร็วเดิมก่อน
         rb.velocity = Vector2.zero;
-
-        // กำหนดความเร็วใหม่จากทิศยิงเท่านั้น
         rb.velocity = direction * speed;
 
-        // หมุนกระสุนตามทิศทาง
         float angle = Mathf.Atan2(
             direction.y,
             direction.x
         ) * Mathf.Rad2Deg;
 
-        transform.rotation = Quaternion.Euler(
-            0f,
-            0f,
-            angle
-        );
+        transform.rotation =
+            Quaternion.Euler(0f, 0f, angle);
 
         CancelInvoke(nameof(DestroyBullet));
 
@@ -61,17 +54,16 @@ public class Bullet : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // กระสุนของ Player ไม่ยิงตัวเอง
-        if (other.CompareTag("Player"))
+        // กระสุนศัตรูไม่โดนศัตรูด้วยกันเอง
+        if (other.GetComponentInParent<EnemyHealth>() != null)
             return;
 
-        // โดนศัตรู = ทำดาเมจแล้วกระสุนหาย
-        EnemyHealth enemy =
-            other.GetComponentInParent<EnemyHealth>();
+        PlayerHealth playerHealth =
+            other.GetComponentInParent<PlayerHealth>();
 
-        if (enemy != null)
+        if (playerHealth != null)
         {
-            enemy.TakeDamage(damage);
+            playerHealth.TakeDamage(damage);
             DestroyBullet();
             return;
         }
@@ -80,7 +72,6 @@ public class Bullet : MonoBehaviour
         if (other.GetComponent<PlatformEffector2D>() != null)
             return;
 
-        // ชนพื้นแล้วหาย
         if (other.gameObject.layer ==
             LayerMask.NameToLayer("groundLayer"))
         {
