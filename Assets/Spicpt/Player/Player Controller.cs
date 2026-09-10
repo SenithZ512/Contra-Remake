@@ -9,9 +9,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpForce = 12f;
 
     [Header("Crouch")]
-    [SerializeField] private float standingColliderHeight = 2f;
-    [SerializeField] private float crouchingColliderHeight = 1f;
-    [SerializeField] private float colliderCenterOffset = -0.5f;
+    [SerializeField] private float standingColliderHeight = 1.7f;
+    [SerializeField] private float crouchingColliderHeight = 0.9f;
 
     [Header("Ground Check")]
     [SerializeField] private Transform groundCheck;
@@ -25,6 +24,9 @@ public class PlayerController : MonoBehaviour
 
     [Header("Screen Lock (Invisible Wall)")]
     [SerializeField] private CameraFollow cameraFollow;
+
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
 
     private Rigidbody2D rb;
     private CapsuleCollider2D capsuleCollider;
@@ -56,6 +58,24 @@ public class PlayerController : MonoBehaviour
                 "PlayerController: Player ต้องมี CapsuleCollider2D"
             );
         }
+
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+        }
+
+        if (capsuleCollider != null)
+        {
+            capsuleCollider.size = new Vector2(
+                capsuleCollider.size.x,
+                standingColliderHeight
+            );
+
+            capsuleCollider.offset = new Vector2(
+                capsuleCollider.offset.x,
+                standingColliderHeight / 2f
+            );
+        }
     }
 
     private void Update()
@@ -66,6 +86,7 @@ public class PlayerController : MonoBehaviour
         HandleJumpOrDropThrough();
         HandleFlip();
         ClampToCameraBoundary();
+        UpdateAnimator();
     }
 
     private void FixedUpdate()
@@ -203,27 +224,21 @@ public class PlayerController : MonoBehaviour
         if (capsuleCollider == null)
             return;
 
-        if (isCrouching)
-        {
-            capsuleCollider.size = new Vector2(
-                capsuleCollider.size.x,
-                crouchingColliderHeight
-            );
+        float height = isCrouching
+            ? crouchingColliderHeight
+            : standingColliderHeight;
 
-            capsuleCollider.offset = new Vector2(
-                capsuleCollider.offset.x,
-                colliderCenterOffset
-            );
-        }
-        else
-        {
-            capsuleCollider.size = new Vector2(
-                capsuleCollider.size.x,
-                standingColliderHeight
-            );
+        capsuleCollider.size = new Vector2(
+            capsuleCollider.size.x,
+            height
+        );
 
-            capsuleCollider.offset = Vector2.zero;
-        }
+        // จุดหมุน (pivot) ของสไปรท์อยู่ที่เท้า ดังนั้นขอบล่างของ collider ต้องอยู่ที่เท้าเสมอ
+        // ไม่ว่าจะยืนหรือคลาน (สูง/เตี้ยต่างกัน แต่เท้าต้องแตะพื้นจุดเดียวกัน)
+        capsuleCollider.offset = new Vector2(
+            capsuleCollider.offset.x,
+            height / 2f
+        );
     }
 
     private void ClampToCameraBoundary()
@@ -257,6 +272,14 @@ public class PlayerController : MonoBehaviour
             groundCheckRadius,
             groundLayer
         );
+    }
+
+    private void UpdateAnimator()
+    {
+        if (animator == null)
+            return;
+
+        animator.SetFloat("Speed", Mathf.Abs(moveInput));
     }
 
     private void HandleFlip()
