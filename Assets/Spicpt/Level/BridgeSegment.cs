@@ -3,16 +3,13 @@ using UnityEngine;
 
 public class BridgeSegment : MonoBehaviour
 {
-    [Header("Shake (สั่นเตือนก่อนพัง)")]
-    [SerializeField] private float shakeDuration = 0.25f;
+    [Header("Shake (สั่นเตือนก่อนระเบิด)")]
+    [SerializeField] private float shakeDuration = 0.15f;
     [SerializeField] private float shakeDistance = 0.06f;
 
-    [Header("Fall")]
-    [SerializeField] private float fallGravityScale = 2.5f;
-    [SerializeField] private float torque = 40f;
-    [SerializeField] private float destroyDelay = 2f;
+    [Header("Explosion")]
+    [SerializeField] private GameObject explosionPrefab;
 
-    private Rigidbody2D rb;
     private Collider2D bodyCollider;
     private CollapsingBridge bridge;
     private bool isCollapsing;
@@ -21,15 +18,7 @@ public class BridgeSegment : MonoBehaviour
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
         bodyCollider = GetComponent<Collider2D>();
-
-        if (rb == null)
-        {
-            Debug.LogError(
-                "BridgeSegment: ต้องมี Rigidbody2D (ตั้งเป็น Static ไว้)"
-            );
-        }
 
         if (bodyCollider == null)
         {
@@ -67,20 +56,18 @@ public class BridgeSegment : MonoBehaviour
     {
         yield return StartCoroutine(ShakeRoutine());
 
-        // ปิด collider ก่อน ผู้เล่นที่ยืนอยู่จะได้ร่วงลงทันที
-        if (bodyCollider != null)
+        // ระเบิดต้องไม่ถูกทำลายไปพร้อมท่อนสะพาน จึงไม่ผูกเป็นลูก
+        if (explosionPrefab != null)
         {
-            bodyCollider.enabled = false;
+            Instantiate(
+                explosionPrefab,
+                transform.position,
+                Quaternion.identity
+            );
         }
 
-        if (rb != null)
-        {
-            rb.bodyType = RigidbodyType2D.Dynamic;
-            rb.gravityScale = fallGravityScale;
-            rb.AddTorque(Random.Range(-torque, torque));
-        }
-
-        Destroy(gameObject, destroyDelay);
+        // ท่อนหายทันที ผู้เล่นที่ยืนอยู่จะร่วงลงตรงนั้นเลย
+        Destroy(gameObject);
     }
 
     private IEnumerator ShakeRoutine()

@@ -77,7 +77,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 9
   m_Sprite: {fileID: 21300000, guid: 77684b7429174d3997aa43ecd136b23d, type: 3}
   m_Color: {r: 0.55, g: 0.85, b: 0.5, a: 1}
   m_FlipX: 0
@@ -161,10 +161,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31e22986be1a4db48fe88394d39c4440, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   maxHealth: 1
-  deathEffectPrefab: {fileID: 0}
+  deathEffectPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
+  deathEffectOffset: {x: 0, y: 0.85}
 --- !u!114 &100007
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -175,8 +176,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9de3a2c8c2bc4a9cb66168a8d6f7f064, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   damage: 1
   playerTag: Player
 --- !u!114 &100008
@@ -189,8 +190,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3d567f33b4414b9cbe3e931a23612e31, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 4832dc64b04140eca466c2e7cdef2cab, type: 3}
   fireRate: 1.5
   firstShotDelay: 0.5

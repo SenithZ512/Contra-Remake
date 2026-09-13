@@ -7,6 +7,7 @@ public class EnemyHealth : MonoBehaviour
 
     [Header("Death")]
     [SerializeField] private GameObject deathEffectPrefab;
+    [SerializeField] private Vector2 deathEffectOffset = new Vector2(0f, 0.85f);
 
     private int currentHealth;
     private bool isDead;
@@ -37,9 +38,10 @@ public class EnemyHealth : MonoBehaviour
 
         if (deathEffectPrefab != null)
         {
+            // จุดหมุนของสไปรท์อยู่ที่เท้า จึงต้องเลื่อนระเบิดขึ้นมากลางลำตัว
             Instantiate(
                 deathEffectPrefab,
-                transform.position,
+                (Vector2)transform.position + deathEffectOffset,
                 Quaternion.identity
             );
         }

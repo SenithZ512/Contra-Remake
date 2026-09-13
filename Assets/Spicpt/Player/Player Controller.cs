@@ -280,6 +280,7 @@ public class PlayerController : MonoBehaviour
             return;
 
         animator.SetFloat("Speed", Mathf.Abs(moveInput));
+        animator.SetBool("IsGrounded", isGrounded);
     }
 
     private void HandleFlip()

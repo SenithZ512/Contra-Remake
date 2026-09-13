@@ -22,7 +22,16 @@ public class PlayerAnimationFrames : MonoBehaviour
         if (frames == null || frames.Length == 0)
             return;
 
-        index = Mathf.Clamp(index, 0, frames.Length - 1);
+        // ฟ้องให้เห็นชัด ไม่งั้นจะถูก clamp เงียบๆ แล้วโชว์ผิดท่าโดยไม่รู้ว่าพัง
+        if (index < 0 || index >= frames.Length)
+        {
+            Debug.LogWarning(
+                "PlayerAnimationFrames: ขอเฟรมที่ " + index +
+                " แต่ในลิสต์ Frames มีแค่ " + frames.Length + " ช่อง"
+            );
+
+            index = Mathf.Clamp(index, 0, frames.Length - 1);
+        }
 
         spriteRenderer.sprite = frames[index];
     }

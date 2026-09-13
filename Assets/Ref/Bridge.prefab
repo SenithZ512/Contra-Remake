@@ -230,11 +230,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210010
 GameObject:
   m_ObjectHideFlags: 0
@@ -406,11 +404,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210020
 GameObject:
   m_ObjectHideFlags: 0
@@ -582,11 +578,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210030
 GameObject:
   m_ObjectHideFlags: 0
@@ -758,11 +752,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210040
 GameObject:
   m_ObjectHideFlags: 0
@@ -934,11 +926,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210050
 GameObject:
   m_ObjectHideFlags: 0
@@ -1110,11 +1100,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210060
 GameObject:
   m_ObjectHideFlags: 0
@@ -1286,11 +1274,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
 --- !u!1 &210070
 GameObject:
   m_ObjectHideFlags: 0
@@ -1462,8 +1448,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f238b1b2199e4bd78ba4cf93004d64de, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  shakeDuration: 0.25
+  shakeDuration: 0.15
   shakeDistance: 0.06
-  fallGravityScale: 2.5
-  torque: 40
-  destroyDelay: 2
+  explosionPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
