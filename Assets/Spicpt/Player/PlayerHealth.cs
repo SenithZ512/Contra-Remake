@@ -20,9 +20,13 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private CameraFollow cameraFollow;
 
+    [Header("Weapon")]
+    [SerializeField] private bool resetWeaponOnDeath = true;
+
     private Rigidbody2D rb;
     private PlayerController playerController;
     private PlayerCombat playerCombat;
+    private WeaponSystem weaponSystem;
 
     private int currentHealth;
     private int currentLives;
@@ -37,6 +41,7 @@ public class PlayerHealth : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         playerController = GetComponent<PlayerController>();
+        weaponSystem = GetComponent<WeaponSystem>();
         playerCombat = GetComponent<PlayerCombat>();
 
         if (spriteRenderer == null)
@@ -67,6 +72,12 @@ public class PlayerHealth : MonoBehaviour
     {
         isDead = true;
         currentLives--;
+
+        // ตายแล้วเสียอาวุธที่เก็บมา กลับไปใช้ปืนพื้นฐาน ตามต้นฉบับ Contra
+        if (resetWeaponOnDeath && weaponSystem != null)
+        {
+            weaponSystem.SetWeapon(WeaponType.Normal);
+        }
 
         if (currentLives <= 0)
         {

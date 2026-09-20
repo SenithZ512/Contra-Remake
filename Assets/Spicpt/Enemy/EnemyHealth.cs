@@ -11,8 +11,19 @@ public class EnemyHealth : MonoBehaviour
 
     private int currentHealth;
     private bool isDead;
+    private bool isInvulnerable;
 
     public bool IsDead => isDead;
+    public bool IsInvulnerable => isInvulnerable;
+
+    /// <summary>ใช้ตอนป้อมปืนปิดฝา หรือช่วงที่ไม่ควรรับดาเมจ</summary>
+    public void SetInvulnerable(bool value)
+    {
+        isInvulnerable = value;
+    }
+
+    /// <summary>ยิงตอนตาย ก่อนวัตถุถูกทำลาย ใครอยากดรอปของตอนตายมาดักตรงนี้ได้</summary>
+    public event System.Action OnDied;
 
     private void Awake()
     {
@@ -21,7 +32,7 @@ public class EnemyHealth : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (isDead)
+        if (isDead || isInvulnerable)
             return;
 
         currentHealth -= damage;
@@ -35,6 +46,11 @@ public class EnemyHealth : MonoBehaviour
     private void Die()
     {
         isDead = true;
+
+        if (OnDied != null)
+        {
+            OnDied();
+        }
 
         if (deathEffectPrefab != null)
         {
