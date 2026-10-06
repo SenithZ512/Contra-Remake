@@ -8,6 +8,14 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField] private float jumpForce = 12f;
 
+    [Header("Water")]
+    /// <summary>ลุยน้ำแล้วช้าลงเท่าไหร่ ตั้งจาก WaterZone ตอนลงน้ำ</summary>
+    private float waterSpeedMultiplier = 1f;
+    private float waterJumpMultiplier = 1f;
+
+    /// <summary>นับโซนน้ำที่ตัวซ้อนอยู่ กันค่าเพี้ยนตอนโซนน้ำวางทับกัน</summary>
+    private int waterZoneCount;
+
     [Header("Crouch")]
     [SerializeField] private float standingColliderHeight = 1.7f;
     [SerializeField] private float crouchingColliderHeight = 0.9f;
@@ -39,6 +47,28 @@ public class PlayerController : MonoBehaviour
     public float MoveInput => moveInput;
     public bool IsGrounded => isGrounded;
     public bool IsCrouching => isCrouching;
+    public bool IsInWater => waterZoneCount > 0;
+
+    /// <summary>WaterZone เรียกตอนตัวแตะน้ำ</summary>
+    public void EnterWater(float speedMultiplier, float jumpMultiplier)
+    {
+        waterZoneCount++;
+
+        waterSpeedMultiplier = speedMultiplier;
+        waterJumpMultiplier = jumpMultiplier;
+    }
+
+    /// <summary>WaterZone เรียกตอนขึ้นจากน้ำ</summary>
+    public void ExitWater()
+    {
+        waterZoneCount = Mathf.Max(0, waterZoneCount - 1);
+
+        if (waterZoneCount > 0)
+            return;
+
+        waterSpeedMultiplier = 1f;
+        waterJumpMultiplier = 1f;
+    }
 
     private void Awake()
     {
@@ -112,7 +142,7 @@ public class PlayerController : MonoBehaviour
         }
 
         rb.velocity = new Vector2(
-            moveInput * moveSpeed,
+            moveInput * moveSpeed * waterSpeedMultiplier,
             rb.velocity.y
         );
     }
@@ -143,7 +173,7 @@ public class PlayerController : MonoBehaviour
 
         rb.velocity = new Vector2(
             rb.velocity.x,
-            jumpForce
+            jumpForce * waterJumpMultiplier
         );
     }
 

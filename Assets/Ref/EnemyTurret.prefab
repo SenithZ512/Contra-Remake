@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 600006}
   - component: {fileID: 600007}
   - component: {fileID: 600008}
+  - component: {fileID: 500010}
   m_Layer: 0
   m_Name: EnemyTurret
   m_TagString: Enemy
@@ -195,14 +196,14 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 4832dc64b04140eca466c2e7cdef2cab, type: 3}
-  fireRate: 2
+  fireRate: 2.8
   firstShotDelay: 0.5
   burstCount: 3
   burstInterval: 0.15
   barrel: {fileID: 600011}
   barrelLength: 0.6
   detectionRange: 14
-  aimHeightOffset: 0.9
+  aimHeightOffset: 0.45
   facingDirection: {x: -1, y: 0}
   maxAimAngle: 80
   playerTag: Player
@@ -305,3 +306,15 @@ MonoBehaviour:
   margin: 4
   despawnWhenFalling: 0
   minY: -20
+--- !u!114 &500010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 600000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

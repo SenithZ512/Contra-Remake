@@ -3,7 +3,6 @@
 public class PlayerCombat : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform firePoint;
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private GameObject spreadBulletPrefab;
     [SerializeField] private GameObject fireballBulletPrefab;
@@ -19,20 +18,36 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private int laserBulletCount = 2;
     [SerializeField] private float laserOffsetSpacing = 1.2f;
 
-    [Header("Crouch Fire")]
-    [SerializeField] private float crouchFirePointOffsetY = -0.4f;
+    [Header("ปากกระบอกปืน (วัดจากเท้า เลข x เป็นตอนหันขวา)")]
+    [SerializeField] private SpriteRenderer spriteRenderer;
+
+    /// <summary>ย่อ/ขยายตัวละครแล้วปากกระบอกเลื่อนตามเอง ไม่ต้องวัดใหม่</summary>
+    [SerializeField] private bool autoScaleMuzzle = true;
+
+    /// <summary>ความสูงของสไปรท์ตอนที่นั่งวัดค่าข้างล่างไว้ = 1080 px ÷ PPU 410</summary>
+    [SerializeField] private float referenceSpriteHeight = 2.6341f;
+
+    [SerializeField] private Vector2 muzzleHorizontal = new Vector2(1.03f, 1.42f);
+    [SerializeField] private Vector2 muzzleDiagonalUp = new Vector2(0.84f, 2.25f);
+    [SerializeField] private Vector2 muzzleUp = new Vector2(0.84f, 2.25f);
+    [SerializeField] private Vector2 muzzleDiagonalDown = new Vector2(0.87f, 1.04f);
+    [SerializeField] private Vector2 muzzleDown = new Vector2(0.25f, 0.7f);
+    [SerializeField] private Vector2 muzzleCrouch = new Vector2(1f, 0.55f);
+
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private KeyCode fireKey = KeyCode.Z;
+
+    /// <summary>ค้างท่ายิงไว้อีกนิดหลังปล่อยปุ่ม ไม่งั้นท่าจะกระพริบ</summary>
+    [SerializeField] private float firePoseHold = 0.15f;
 
     private float nextFireTime;
+    private Vector2 currentShootDirection = Vector2.right;
+    private float firePoseUntil;
+    private float aimY;
 
     private void Awake()
     {
-        if (firePoint == null)
-        {
-            Debug.LogError(
-                "PlayerCombat: ยังไม่ได้กำหนด Fire Point"
-            );
-        }
-
         if (bulletPrefab == null)
         {
             Debug.LogError(
@@ -84,14 +99,40 @@ public class PlayerCombat : MonoBehaviour
                 "PlayerCombat: ไม่พบ PlayerController"
             );
         }
+
+        if (animator == null)
+        {
+            animator = GetComponent<Animator>();
+        }
+
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        }
     }
 
     private void Update()
     {
-        if (Input.GetKey(KeyCode.Z))
+        if (Input.GetKey(fireKey))
         {
+            aimY = GetShootDirection().y;
+            firePoseUntil = Time.time + firePoseHold;
+
             TryShoot();
         }
+
+        UpdateAnimator();
+    }
+
+    private void UpdateAnimator()
+    {
+        if (animator == null)
+            return;
+
+        bool isFiring = Time.time < firePoseUntil;
+
+        animator.SetBool("IsFiring", isFiring);
+        animator.SetFloat("AimY", isFiring ? aimY : 0f);
     }
 
     private void TryShoot()
@@ -102,14 +143,14 @@ public class PlayerCombat : MonoBehaviour
         if (Time.time < nextFireTime)
             return;
 
-        if (firePoint == null)
-            return;
-
         nextFireTime =
             Time.time + weaponSystem.CurrentFireRate;
 
         Vector2 direction =
             GetShootDirection();
+
+        // ต้องเก็บไว้ก่อน เพราะ GetFirePointPosition() ใช้ทิศนี้เลือกปากกระบอก
+        currentShootDirection = direction;
 
         switch (weaponSystem.CurrentWeapon)
         {
@@ -402,19 +443,94 @@ public class PlayerCombat : MonoBehaviour
             : Vector2.left;
     }
 
+    /// <summary>
+    /// ปากกระบอกปืนย้ายตามท่าที่กำลังเล่นอยู่ ค่าทุกตัววัดจากสไปรท์จริง
+    /// จุดอ้างอิงคือ transform.position ซึ่งอยู่ที่เท้า
+    /// </summary>
     private Vector2 GetFirePointPosition()
     {
-        Vector2 position = firePoint.position;
+        Vector2 offset = GetMuzzleOffset() * GetMuzzleScale();
 
+        // หันซ้ายก็สะท้อนแกน x เอา ไม่ต้องตั้งค่าซ้ำ
+        if (transform.localScale.x < 0f)
+        {
+            offset.x = -offset.x;
+        }
+
+        return (Vector2)transform.position + offset;
+    }
+
+    /// <summary>
+    /// เทียบความสูงสไปรท์ตอนนี้กับตอนที่วัดค่าไว้ แล้วย่อระยะตามส่วน
+    /// ใช้ sprite.bounds ไม่ใช่ renderer.bounds เพราะตอนกระโดดตัวหมุน
+    /// กรอบของ renderer จะบานออก ค่าจะเพี้ยน
+    /// </summary>
+    private float GetMuzzleScale()
+    {
+        if (!autoScaleMuzzle)
+            return 1f;
+
+        if (spriteRenderer == null || spriteRenderer.sprite == null)
+            return 1f;
+
+        if (referenceSpriteHeight <= 0.0001f)
+            return 1f;
+
+        float height =
+            spriteRenderer.sprite.bounds.size.y *
+            Mathf.Abs(spriteRenderer.transform.lossyScale.y);
+
+        return height / referenceSpriteHeight;
+    }
+
+    private Vector2 GetMuzzleOffset()
+    {
         bool isCrouching =
             playerController != null &&
             playerController.IsCrouching;
 
         if (isCrouching)
+            return muzzleCrouch;
+
+        Vector2 direction = currentShootDirection;
+
+        bool hasHorizontal = Mathf.Abs(direction.x) > 0.01f;
+
+        if (direction.y > 0.5f)
+            return hasHorizontal ? muzzleDiagonalUp : muzzleUp;
+
+        if (direction.y < -0.5f)
+            return hasHorizontal ? muzzleDiagonalDown : muzzleDown;
+
+        return muzzleHorizontal;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (spriteRenderer == null)
         {
-            position.y += crouchFirePointOffsetY;
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
 
-        return position;
+        float sign = transform.localScale.x < 0f ? -1f : 1f;
+        float scale = GetMuzzleScale();
+
+        Vector2[] points =
+        {
+            muzzleHorizontal,
+            muzzleDiagonalUp,
+            muzzleUp,
+            muzzleDiagonalDown,
+            muzzleDown,
+            muzzleCrouch
+        };
+
+        foreach (Vector2 point in points)
+        {
+            Vector3 world = transform.position +
+                new Vector3(point.x * sign, point.y, 0f) * scale;
+
+            Gizmos.DrawWireSphere(world, 0.08f);
+        }
     }
 }

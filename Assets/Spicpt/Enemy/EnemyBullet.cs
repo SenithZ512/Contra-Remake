@@ -7,6 +7,23 @@ public class EnemyBullet : MonoBehaviour
     [SerializeField] private float lifetime = 3f;
     [SerializeField] private int damage = 1;
 
+    [Header("Explosive (ลูกระเบิดของบอส)")]
+    [SerializeField] private GameObject impactEffectPrefab;
+    [SerializeField] private float blastRadius = 0f;
+
+    [Header("Ground")]
+    /// <summary>
+    /// หยุดที่พื้นทุกชนิด ไม่สนว่าเป็นพื้นลอดได้หรือไม่
+    /// เปิดไว้สำหรับลูกระเบิดบอส ที่ต้องตกกระแทกพื้นแล้วระเบิด
+    /// </summary>
+    [SerializeField] private bool stopOnAnyGround;
+
+    [Header("Player")]
+    [SerializeField] private string playerTag = "Player";
+
+    [Header("Look")]
+    [SerializeField] private bool rotateAlongVelocity;
+
     private Rigidbody2D rb;
 
     private void Awake()
@@ -52,6 +69,24 @@ public class EnemyBullet : MonoBehaviour
         );
     }
 
+    private void Update()
+    {
+        // ลูกที่มีน้ำหนักจะโค้งลง หัวกระสุนต้องหันตามทางที่มันวิ่งจริง
+        if (!rotateAlongVelocity || rb == null)
+            return;
+
+        if (rb.velocity.sqrMagnitude < 0.001f)
+            return;
+
+        float angle = Mathf.Atan2(
+            rb.velocity.y,
+            rb.velocity.x
+        ) * Mathf.Rad2Deg;
+
+        transform.rotation =
+            Quaternion.Euler(0f, 0f, angle);
+    }
+
     private void OnTriggerEnter2D(Collider2D other)
     {
         // กระสุนศัตรูไม่โดนศัตรูด้วยกันเอง
@@ -64,23 +99,78 @@ public class EnemyBullet : MonoBehaviour
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(damage);
-            DestroyBullet();
+            Explode();
             return;
         }
 
         // พื้นต่างระดับ (One-Way Platform) ยิงทะลุได้ตามต้นฉบับ Contra
-        if (other.GetComponent<PlatformEffector2D>() != null)
+        // ยกเว้นลูกที่ตั้ง stopOnAnyGround ไว้ ซึ่งต้องกระแทกพื้นให้ได้ทุกแบบ
+        if (!stopOnAnyGround &&
+            other.GetComponent<PlatformEffector2D>() != null &&
+            !other.CompareTag("SolidGround"))
             return;
 
         if (other.gameObject.layer ==
             LayerMask.NameToLayer("groundLayer"))
         {
-            DestroyBullet();
+            Explode();
+        }
+    }
+
+    /// <summary>ระเบิดตอนกระทบ ลูกที่มีรัศมีจะกินพื้นที่รอบจุดตกด้วย</summary>
+    private void Explode()
+    {
+        if (impactEffectPrefab != null)
+        {
+            Instantiate(
+                impactEffectPrefab,
+                transform.position,
+                Quaternion.identity
+            );
+        }
+
+        if (blastRadius > 0f)
+        {
+            DamagePlayerInBlast();
+        }
+
+        DestroyBullet();
+    }
+
+    private void DamagePlayerInBlast()
+    {
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+            transform.position,
+            blastRadius
+        );
+
+        foreach (Collider2D hit in hits)
+        {
+            if (!hit.CompareTag(playerTag))
+                continue;
+
+            PlayerHealth playerHealth =
+                hit.GetComponentInParent<PlayerHealth>();
+
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(damage);
+            }
+
+            return;
         }
     }
 
     private void DestroyBullet()
     {
         Destroy(gameObject);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (blastRadius <= 0f)
+            return;
+
+        Gizmos.DrawWireSphere(transform.position, blastRadius);
     }
 }

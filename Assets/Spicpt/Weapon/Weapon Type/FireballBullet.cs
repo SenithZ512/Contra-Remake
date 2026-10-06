@@ -11,6 +11,10 @@ public class FireballBullet : MonoBehaviour
     [SerializeField] private float orbitRadius = 0.3f;
     [SerializeField] private float orbitSpeed = 720f;
 
+    [Header("Ground")]
+    /// <summary>ยิงทะลุพื้นได้ทุกแบบ กระสุนหายเองตามอายุอย่างเดียว</summary>
+    [SerializeField] private bool passThroughGround = true;
+
     private Rigidbody2D rb;
     private Vector2 origin;
     private Vector2 direction;
@@ -84,13 +88,19 @@ public class FireballBullet : MonoBehaviour
 
         if (enemy != null)
         {
-            enemy.TakeDamage(damage);
+            enemy.TakeDamage(damage, direction);
             DestroyBullet();
             return;
         }
 
         // พื้นต่างระดับ (One-Way Platform) ยิงทะลุได้ตามต้นฉบับ Contra
-        if (other.GetComponent<PlatformEffector2D>() != null)
+        // ทะลุพื้นทุกชนิด ปล่อยให้หายเองตามอายุกระสุน
+        if (passThroughGround)
+            return;
+
+        // พื้นต่างระดับยิงทะลุได้ แต่พื้นตัน (Tag SolidGround) ต้องหยุด
+        if (other.GetComponent<PlatformEffector2D>() != null &&
+            !other.CompareTag("SolidGround"))
             return;
 
         if (other.gameObject.layer ==

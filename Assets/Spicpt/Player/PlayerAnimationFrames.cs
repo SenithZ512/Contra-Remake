@@ -9,7 +9,7 @@ public class PlayerAnimationFrames : MonoBehaviour
     {
         if (spriteRenderer == null)
         {
-            spriteRenderer = GetComponent<SpriteRenderer>();
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
     }
 

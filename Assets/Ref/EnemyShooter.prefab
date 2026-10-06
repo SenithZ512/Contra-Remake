@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 100007}
   - component: {fileID: 100008}
   - component: {fileID: 100009}
+  - component: {fileID: 100010}
   m_Layer: 0
   m_Name: EnemyShooter
   m_TagString: Enemy
@@ -33,7 +34,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -79,12 +80,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 9
-  m_Sprite: {fileID: 21300000, guid: 77684b7429174d3997aa43ecd136b23d, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 66189bb3bcae294478a53331e35449f0, type: 3}
   m_Color: {r: 0.55, g: 0.85, b: 0.5, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 4.6829267, y: 2.6341465}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -116,7 +117,7 @@ Rigidbody2D:
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 1
-  m_Constraints: 4
+  m_Constraints: 5
 --- !u!70 &100005
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -166,7 +167,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 1
   deathEffectPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
-  deathEffectOffset: {x: 0, y: 0.85}
+  deathEffectOffset: {x: 0, y: 0.5}
+  knockbackOnDeath: 1
+  knockbackForce: 1.8
+  knockbackUpForce: 3
+  knockbackGravity: 0.7
+  knockbackSpin: 0
+  knockbackDuration: 0.45
 --- !u!114 &100007
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -194,12 +201,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 4832dc64b04140eca466c2e7cdef2cab, type: 3}
-  fireRate: 1.5
+  fireRate: 2.1
   firstShotDelay: 0.5
-  firePointOffset: {x: 0.55, y: 1}
+  shoulderOffset: {x: 0, y: 1.42}
+  barrelLength: 1.03
   detectionRange: 12
   aimAtPlayer: 1
-  aimHeightOffset: 0.9
+  aimHeightOffset: 0.45
+  lowestAimY: -0.8
+  useEightDirections: 1
   playerTag: Player
 --- !u!114 &100009
 MonoBehaviour:
@@ -211,8 +221,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bc8f7f1c22e54fdd892b3551397188fc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   margin: 4
   despawnWhenFalling: 1
   minY: -20
+--- !u!114 &100010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

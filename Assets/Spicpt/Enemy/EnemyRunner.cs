@@ -2,12 +2,46 @@ using UnityEngine;
 
 public class EnemyRunner : MonoBehaviour
 {
+    public enum RunMode
+    {
+        /// <summary>เล็งหาผู้เล่นตอนเกิดครั้งเดียว แล้ววิ่งทางนั้นยาวเลย (แบบ Contra)</summary>
+        LockOnSpawn,
+
+        /// <summary>วิ่งไปทาง Fixed Direction ตลอด ไม่สนผู้เล่นอยู่ไหน</summary>
+        FixedDirection,
+
+        /// <summary>ไล่ตามผู้เล่นตลอดเวลา กลับตัวได้เรื่อยๆ</summary>
+        ChasePlayer
+    }
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 4f;
 
     [Header("Behaviour")]
-    [SerializeField] private bool chasePlayer = true;
+    [SerializeField] private RunMode runMode = RunMode.LockOnSpawn;
+
+    /// <summary>ใช้ตอนโหมด Fixed Direction และใช้เป็นทางสำรองถ้าหาผู้เล่นไม่เจอ</summary>
     [SerializeField] private float fixedDirection = -1f;
+
+    [Header("Jump Over Gaps")]
+    [SerializeField] private bool jumpOverGaps = true;
+    [SerializeField] private float jumpForce = 11f;
+    [SerializeField] private LayerMask groundLayer = 1 << 3;
+
+    /// <summary>จุดเท้า วัดจาก transform (ซึ่งอยู่ที่เท้าอยู่แล้ว)</summary>
+    [SerializeField] private Vector2 footOffset = new Vector2(0f, 0.08f);
+    [SerializeField] private float footRadius = 0.22f;
+
+    /// <summary>หยั่งไปข้างหน้าเท่าไหร่ถึงนับว่าถึงขอบ</summary>
+    [SerializeField] private float edgeCheckAhead = 0.75f;
+    [SerializeField] private float edgeCheckDepth = 0.5f;
+
+    /// <summary>ไม่เห็นที่ลงก็ไม่กระโดด กันวิ่งโดดลงเหว</summary>
+    [SerializeField] private bool requireLandingSpot = true;
+    [SerializeField] private float maxJumpDistance = 3f;
+    [SerializeField] private float landingCheckDepth = 3f;
+
+    [SerializeField] private float jumpCooldown = 0.35f;
 
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
@@ -15,6 +49,11 @@ public class EnemyRunner : MonoBehaviour
     private Rigidbody2D rb;
     private Transform player;
     private bool facingRight = true;
+
+    /// <summary>0 = ยังไม่ล็อก ให้คิดใหม่ทุกเฟรม</summary>
+    private float lockedDirection;
+
+    private float nextJumpTime;
 
     private void Awake()
     {
@@ -37,6 +76,32 @@ public class EnemyRunner : MonoBehaviour
         {
             player = playerObject.transform;
         }
+
+        LockDirection();
+    }
+
+    /// <summary>ตัดสินใจทิศทางครั้งเดียวตอนเกิด แล้วไม่เปลี่ยนใจอีก</summary>
+    private void LockDirection()
+    {
+        if (runMode == RunMode.ChasePlayer)
+        {
+            lockedDirection = 0f;
+            return;
+        }
+
+        if (runMode == RunMode.FixedDirection || player == null)
+        {
+            lockedDirection = fixedDirection >= 0f ? 1f : -1f;
+            return;
+        }
+
+        float difference =
+            player.position.x - transform.position.x;
+
+        // เกิดทับผู้เล่นพอดี ก็ใช้ทางสำรองไป
+        lockedDirection = Mathf.Abs(difference) < 0.05f
+            ? (fixedDirection >= 0f ? 1f : -1f)
+            : Mathf.Sign(difference);
     }
 
     private void FixedUpdate()
@@ -52,12 +117,122 @@ public class EnemyRunner : MonoBehaviour
         );
 
         UpdateFacing(direction);
+
+        TryJumpOverGap(direction);
+    }
+
+    /// <summary>ถึงขอบพื้นเมื่อไหร่ก็กระโดดข้ามไปฝั่งตรงข้าม</summary>
+    private void TryJumpOverGap(float direction)
+    {
+        if (!jumpOverGaps)
+            return;
+
+        if (Time.time < nextJumpTime)
+            return;
+
+        if (!IsGrounded())
+            return;
+
+        if (!IsAtLedge(direction))
+            return;
+
+        if (requireLandingSpot && !HasLandingSpot(direction))
+            return;
+
+        rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+
+        nextJumpTime = Time.time + jumpCooldown;
+    }
+
+    private float GetScale()
+    {
+        return Mathf.Abs(transform.lossyScale.y);
+    }
+
+    private Vector2 GetFootPosition()
+    {
+        return (Vector2)transform.position + footOffset * GetScale();
+    }
+
+    private bool IsGrounded()
+    {
+        return Physics2D.OverlapCircle(
+            GetFootPosition(),
+            footRadius * GetScale(),
+            groundLayer
+        ) != null;
+    }
+
+    /// <summary>หยั่งลงตรงข้างหน้า ไม่เจอพื้น = ยืนอยู่ปากเหว</summary>
+    private bool IsAtLedge(float direction)
+    {
+        float scale = GetScale();
+
+        Vector2 probe = GetFootPosition() +
+            new Vector2(direction * edgeCheckAhead * scale, 0f);
+
+        return Physics2D.Raycast(
+            probe,
+            Vector2.down,
+            edgeCheckDepth * scale,
+            groundLayer
+        ).collider == null;
+    }
+
+    /// <summary>ไล่หยั่งไปเรื่อยๆ จนสุดระยะกระโดด เจอพื้นที่ไหนก็ลงได้</summary>
+    private bool HasLandingSpot(float direction)
+    {
+        float scale = GetScale();
+        float step = 0.4f * scale;
+
+        for (float distance = edgeCheckAhead * scale;
+             distance <= maxJumpDistance * scale;
+             distance += step)
+        {
+            Vector2 probe = GetFootPosition() +
+                new Vector2(direction * distance, 0f);
+
+            bool found = Physics2D.Raycast(
+                probe,
+                Vector2.down,
+                landingCheckDepth * scale,
+                groundLayer
+            ).collider != null;
+
+            if (found)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        float scale = Mathf.Abs(transform.lossyScale.y);
+        float sign = facingRight ? 1f : -1f;
+
+        Vector2 foot = (Vector2)transform.position + footOffset * scale;
+
+        Gizmos.DrawWireSphere(foot, footRadius * scale);
+
+        Vector2 edge = foot + new Vector2(sign * edgeCheckAhead * scale, 0f);
+
+        Gizmos.DrawLine(edge, edge + Vector2.down * (edgeCheckDepth * scale));
+
+        Vector2 far = foot + new Vector2(sign * maxJumpDistance * scale, 0f);
+
+        Gizmos.DrawLine(far, far + Vector2.down * (landingCheckDepth * scale));
     }
 
     private float GetMoveDirection()
     {
-        // ไม่ไล่ผู้เล่น = วิ่งไปทางเดียวตลอด (แบบทหารที่วิ่งเข้ามาจากขอบจอ)
-        if (!chasePlayer || player == null)
+        // ล็อกทางไว้แล้วก็วิ่งตรงไปเลย ไม่กลับตัวตามผู้เล่น
+        if (lockedDirection != 0f)
+        {
+            return lockedDirection;
+        }
+
+        if (player == null)
         {
             return fixedDirection >= 0f ? 1f : -1f;
         }

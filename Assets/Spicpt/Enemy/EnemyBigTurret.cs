@@ -21,8 +21,12 @@ public class EnemyBigTurret : MonoBehaviour
     [SerializeField] private float openHold = 1.5f;
     [SerializeField] private Color closedColor = new Color(0.35f, 0.35f, 0.4f);
     [SerializeField] private Color openColor = new Color(1f, 0.45f, 0.2f);
+    [SerializeField] private Color openPulseColor = new Color(1f, 0.95f, 0.5f);
+    [SerializeField] private float pulseSpeed = 10f;
 
     [Header("Aiming")]
+    [SerializeField] private bool aimAtPlayer = true;
+    [SerializeField] private float[] launchAngles = { 20f, 35f, 12f, 45f };
     [SerializeField] private float detectionRange = 16f;
     [SerializeField] private float aimHeightOffset = 0.9f;
     [SerializeField] private Vector2 facingDirection = Vector2.left;
@@ -38,6 +42,8 @@ public class EnemyBigTurret : MonoBehaviour
     private EnemyHealth health;
     private Transform player;
     private PlayerHealth playerHealth;
+    private bool isOpen;
+    private int shotIndex;
 
     private void Awake()
     {
@@ -100,6 +106,8 @@ public class EnemyBigTurret : MonoBehaviour
 
     private void SetOpen(bool open)
     {
+        isOpen = open;
+
         if (health != null)
         {
             health.SetInvulnerable(!open);
@@ -109,6 +117,17 @@ public class EnemyBigTurret : MonoBehaviour
         {
             spriteRenderer.color = open ? openColor : closedColor;
         }
+    }
+
+    private void Update()
+    {
+        if (!isOpen || spriteRenderer == null)
+            return;
+
+        // กะพริบตอนเปิดฝา ให้เห็นชัดว่าช่วงนี้แหละที่ยิงเข้า
+        float pulse = (Mathf.Sin(Time.time * pulseSpeed) + 1f) * 0.5f;
+
+        spriteRenderer.color = Color.Lerp(openColor, openPulseColor, pulse);
     }
 
     private bool CanSeePlayer()
@@ -124,7 +143,30 @@ public class EnemyBigTurret : MonoBehaviour
         if (toPlayer.magnitude > detectionRange)
             return false;
 
+        // แบบไม่ล็อคเป้า ขอแค่ผู้เล่นเข้ามาในระยะก็สาดออกไปตามมุมที่ตั้งไว้
+        if (!aimAtPlayer)
+            return true;
+
         return Vector2.Angle(facingDirection, toPlayer) <= maxAimAngle;
+    }
+
+    /// <summary>มุมยิงคงที่ วนไปทีละมุมทุกนัด ค่าบวก = เชิดขึ้นเสมอ</summary>
+    private Vector2 GetLaunchDirection()
+    {
+        Vector2 baseDirection = facingDirection.normalized;
+
+        if (launchAngles == null || launchAngles.Length == 0)
+            return baseDirection;
+
+        float elevation =
+            launchAngles[shotIndex % launchAngles.Length];
+
+        shotIndex++;
+
+        Vector2 up = RotateDirection(baseDirection, elevation);
+        Vector2 down = RotateDirection(baseDirection, -elevation);
+
+        return up.y >= down.y ? up : down;
     }
 
     private void FireSpread()
@@ -133,8 +175,10 @@ public class EnemyBigTurret : MonoBehaviour
             return;
 
         Vector2 firePosition = GetFirePosition();
-        Vector2 aimDirection =
-            (GetAimPoint() - firePosition).normalized;
+
+        Vector2 aimDirection = aimAtPlayer
+            ? (GetAimPoint() - firePosition).normalized
+            : GetLaunchDirection();
 
         int count = Mathf.Max(1, bulletsPerShot);
 

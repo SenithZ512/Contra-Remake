@@ -8,12 +8,26 @@ public class EnemyShooter : MonoBehaviour
     [SerializeField] private float firstShotDelay = 0.5f;
 
     [Header("Fire Point")]
-    [SerializeField] private Vector2 firePointOffset = new Vector2(0.55f, 1f);
+    /// <summary>จุดไหล่ที่ประทับปืน วัดจากเท้า</summary>
+    [SerializeField] private Vector2 shoulderOffset = new Vector2(0f, 1f);
+
+    /// <summary>ความยาวลำกล้อง ปากกระบอกจะยื่นไปตามทิศที่ยิง</summary>
+    [SerializeField] private float barrelLength = 0.55f;
 
     [Header("Aiming")]
     [SerializeField] private float detectionRange = 12f;
     [SerializeField] private bool aimAtPlayer = true;
     [SerializeField] private float aimHeightOffset = 0.9f;
+
+    /// <summary>ยิงได้แค่ 8 ทิศเหมือนผู้เล่น ไม่ใช่เล็งองศาอิสระ</summary>
+    [SerializeField] private bool useEightDirections = true;
+
+    /// <summary>
+    /// ค่า y ต่ำสุดที่ยอมให้เล็งได้ กันยิงลงพื้นที่ตัวเองยืนอยู่
+    ///  -0.8 = ห้ามยิงลงตรงๆ แต่เฉียงลงได้ (กติกาเดียวกับผู้เล่น)
+    ///   0   = ห้ามยิงลงทุกแบบ ยิงได้แค่แนวนอนขึ้นไป
+    /// </summary>
+    [SerializeField] private float lowestAimY = -0.8f;
 
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
@@ -79,7 +93,12 @@ public class EnemyShooter : MonoBehaviour
         if (enemyBulletPrefab == null)
             return;
 
-        Vector2 firePosition = GetFirePosition();
+        Vector2 shoulder = GetShoulderPosition();
+        Vector2 direction = GetShootDirection(shoulder);
+
+        // ปากกระบอกยื่นไปตามทิศที่เล็ง กระสุนเลยออกตรงปลายปืนทุกมุม
+        Vector2 firePosition =
+            shoulder + direction * (barrelLength * GetScale());
 
         GameObject bulletObject =
             Instantiate(
@@ -101,18 +120,24 @@ public class EnemyShooter : MonoBehaviour
             return;
         }
 
-        bullet.Initialize(GetShootDirection(firePosition));
+        bullet.Initialize(direction);
     }
 
-    private Vector2 GetFirePosition()
+    /// <summary>ย่อขยายตัวศัตรูแล้วจุดยิงเลื่อนตามเอง ไม่ต้องแก้ตัวเลขใหม่</summary>
+    private float GetScale()
+    {
+        return Mathf.Abs(transform.lossyScale.y);
+    }
+
+    private Vector2 GetShoulderPosition()
     {
         float sign = facingRight ? 1f : -1f;
 
         return (Vector2)transform.position +
             new Vector2(
-                firePointOffset.x * sign,
-                firePointOffset.y
-            );
+                shoulderOffset.x * sign,
+                shoulderOffset.y
+            ) * GetScale();
     }
 
     private Vector2 GetShootDirection(Vector2 firePosition)
@@ -128,11 +153,47 @@ public class EnemyShooter : MonoBehaviour
 
             if (toPlayer.sqrMagnitude > 0.001f)
             {
-                return toPlayer.normalized;
+                return BlockSteepDown(Snap(toPlayer.normalized));
             }
         }
 
         return facingRight ? Vector2.right : Vector2.left;
+    }
+
+    /// <summary>
+    /// เล็งต่ำเกินกำหนดก็ดึงกลับขึ้นมาเป็นทิศที่ใกล้ที่สุดที่ยังยิงได้
+    /// ไม่งั้นทหารที่ยืนบนพื้นจะยิงลงพื้นใต้เท้าตัวเอง
+    /// </summary>
+    private Vector2 BlockSteepDown(Vector2 direction)
+    {
+        if (direction.y >= lowestAimY)
+            return direction;
+
+        float sign = Mathf.Abs(direction.x) > 0.01f
+            ? Mathf.Sign(direction.x)
+            : (facingRight ? 1f : -1f);
+
+        Vector2 diagonal = new Vector2(sign, -1f).normalized;
+
+        return diagonal.y >= lowestAimY
+            ? diagonal
+            : new Vector2(sign, 0f);
+    }
+
+    /// <summary>ปัดมุมลงช่องละ 45 องศา ได้ 8 ทิศเท่าผู้เล่น</summary>
+    private Vector2 Snap(Vector2 direction)
+    {
+        if (!useEightDirections)
+            return direction;
+
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+
+        float snapped = Mathf.Round(angle / 45f) * 45f * Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(snapped),
+            Mathf.Sin(snapped)
+        ).normalized;
     }
 
     private void FacePlayer()

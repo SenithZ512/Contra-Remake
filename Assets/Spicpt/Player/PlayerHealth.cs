@@ -46,7 +46,7 @@ public class PlayerHealth : MonoBehaviour
 
         if (spriteRenderer == null)
         {
-            spriteRenderer = GetComponent<SpriteRenderer>();
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
 
         currentHealth = maxHealth;

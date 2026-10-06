@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 100007}
   - component: {fileID: 100008}
   - component: {fileID: 100009}
+  - component: {fileID: 100010}
   m_Layer: 0
   m_Name: EnemyRunner
   m_TagString: Enemy
@@ -33,7 +34,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -79,12 +80,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 9
-  m_Sprite: {fileID: 21300000, guid: 77684b7429174d3997aa43ecd136b23d, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 5a33ccbe8a0faa34780c448e72f0f7a4, type: 3}
   m_Color: {r: 1, g: 0.45, b: 0.4, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 4.6829267, y: 2.6341465}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -105,7 +106,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 4
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -166,7 +167,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 1
   deathEffectPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
-  deathEffectOffset: {x: 0, y: 0.85}
+  deathEffectOffset: {x: 0, y: 0.5}
+  knockbackOnDeath: 1
+  knockbackForce: 1.8
+  knockbackUpForce: 3
+  knockbackGravity: 0.7
+  knockbackSpin: 0
+  knockbackDuration: 0.45
 --- !u!114 &100007
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -194,8 +201,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 4
-  chasePlayer: 1
+  runMode: 0
   fixedDirection: -1
+  jumpOverGaps: 1
+  jumpForce: 11
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  footOffset: {x: 0, y: 0.08}
+  footRadius: 0.22
+  edgeCheckAhead: 0.75
+  edgeCheckDepth: 0.5
+  requireLandingSpot: 1
+  maxJumpDistance: 3
+  landingCheckDepth: 3
+  jumpCooldown: 0.35
   playerTag: Player
 --- !u!114 &100009
 MonoBehaviour:
@@ -207,8 +227,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bc8f7f1c22e54fdd892b3551397188fc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   margin: 4
   despawnWhenFalling: 1
   minY: -20
+--- !u!114 &100010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
