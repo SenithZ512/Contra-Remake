@@ -17,8 +17,17 @@ public static class TilemapLayerSetup
     private const string GroundLayerName = "groundLayer";
     private const string SolidGroundTag = "SolidGround";
 
+    /// <summary>
+    /// ติดให้แผ่น collider ของชั้น OneWay_Tiles เท่านั้น
+    /// ใช้แยกว่ากระสุนศัตรูควรทะลุผ่าน หรือควรระเบิดใส่
+    /// </summary>
+    private const string OneWayPlatformTag = "OneWayPlatform";
+
     private const string OneWayName = "OneWay_Tiles";
     private const string BackgroundName = "BG_Tiles";
+
+    /// <summary>ชั้นพื้นตัน กด ลง+X ลอดลงไม่ได้ ใช้ทำพื้นด่านหลักกับขอบเหว</summary>
+    private const string SolidName = "Solid_Tiles";
 
     /// <summary>ลูกที่ถือแผ่น collider บางๆ ของพื้นลอดได้</summary>
     private const string OneWayEdgeName = "OneWayEdge";
@@ -30,7 +39,7 @@ public static class TilemapLayerSetup
     /// ก้อนสูง 1.205 แต่ช่องสูง 1 รูปเลยล้นขึ้นไปข้างละ 0.1
     /// ถ้าไม่ยก ตัวละครจะยืนจมหญ้าลงไปเท่านั้น
     /// </summary>
-    private const float ColliderSurfaceOffsetY = 0.1f;
+    private const float ColliderSurfaceOffsetY = 0.05f;
 
     /// <summary>
     /// มุมผิวที่ยังกันไม่ให้ผ่าน 180 = กันทั้งครึ่งบนรวมด้านข้างพอดีเส้น
@@ -42,7 +51,7 @@ public static class TilemapLayerSetup
     /// ความหนาของแผ่น collider พื้น
     /// ต้องบางกว่าความสูงตัวละครมากๆ ไม่งั้นตัวจะเข้าไปค้างข้างใน
     /// </summary>
-    private const float EdgeThickness = 0.2f;
+    private const float EdgeThickness = 0.1f;
     private const int BackgroundSortingOrder = -10;
 
     /// <summary>ตกให้พ้นพื้นก่อน collision จะกลับมา ไม่งั้นเด้งขึ้นไปยืนที่เดิม</summary>
@@ -82,6 +91,9 @@ public static class TilemapLayerSetup
 
         GameObject oneWay = GetOrCreateChild(grid.transform, OneWayName);
         SetupOneWayGround(oneWay);
+
+        GameObject solidTiles = GetOrCreateChild(grid.transform, SolidName);
+        SetupTileLayer(solidTiles, SolidGroundTag);
 
         GameObject background = GetOrCreateChild(grid.transform, BackgroundName);
         SetupBackground(background);
@@ -160,6 +172,44 @@ public static class TilemapLayerSetup
 
     // ---------- สร้างแผ่น collider จากก้อนที่ทาไว้จริง ----------
 
+    [MenuItem("Tools/Contra/Clear All Tiles")]
+    public static void ClearAllTiles()
+    {
+        Grid grid = FindGrid();
+
+        if (grid == null)
+        {
+            Debug.LogError("หา Grid ในฉากไม่เจอ");
+            return;
+        }
+
+        Tilemap[] maps = grid.GetComponentsInChildren<Tilemap>(true);
+
+        // ลบแล้วกู้ไม่ได้ด้วยการกดเมนูซ้ำ ต้องถามก่อนเสมอ
+        bool confirmed = EditorUtility.DisplayDialog(
+            "ลบก้อนทั้งหมด",
+            "จะลบก้อนที่ทาไว้ในทุกชั้นของ Grid นี้ กด Ctrl+Z คืนได้ แต่ถ้าเซฟฉากไปแล้วจะคืนไม่ได้",
+            "ลบเลย",
+            "ยกเลิก"
+        );
+
+        if (!confirmed)
+            return;
+
+        foreach (Tilemap map in maps)
+        {
+            Undo.RegisterCompleteObjectUndo(map, "Clear Tiles");
+
+            map.ClearAllTiles();
+
+            ClearEdges(map.gameObject);
+        }
+
+        EditorSceneManager.MarkSceneDirty(grid.gameObject.scene);
+
+        Debug.Log("ลบก้อนทั้งหมดแล้ว " + maps.Length + " ชั้น");
+    }
+
     [MenuItem("Tools/Contra/Rebuild Ground Colliders")]
     public static void RebuildAllEdges()
     {
@@ -196,6 +246,8 @@ public static class TilemapLayerSetup
     /// </summary>
     private static int RebuildEdges(Grid grid, Tilemap tilemap)
     {
+        string edgeTag = GetEdgeTag(tilemap.name);
+
         ClearEdges(tilemap.gameObject);
 
         tilemap.CompressBounds();
@@ -230,7 +282,9 @@ public static class TilemapLayerSetup
                 if (runStart == int.MinValue)
                     continue;
 
-                CreateEdge(tilemap.gameObject, runStart, x - 1, y, cell, made);
+                CreateEdge(
+                    tilemap.gameObject, runStart, x - 1, y,
+                    cell, made, edgeTag);
 
                 runStart = int.MinValue;
                 made++;
@@ -246,7 +300,8 @@ public static class TilemapLayerSetup
         int x1,
         int row,
         Vector3 cell,
-        int index)
+        int index,
+        string edgeTag)
     {
         string name = index == 0
             ? OneWayEdgeName
@@ -258,7 +313,8 @@ public static class TilemapLayerSetup
 
         edge.transform.SetParent(parent.transform, false);
         edge.layer = LayerMask.NameToLayer(GroundLayerName);
-        edge.tag = "Untagged";
+
+        edge.tag = edgeTag;
 
         float width = (x1 - x0 + 1) * cell.x;
         float centerX = (x0 + x1 + 1) * 0.5f * cell.x;
@@ -277,6 +333,23 @@ public static class TilemapLayerSetup
         box.usedByEffector = true;
 
         SetupEffector(edge);
+    }
+
+    /// <summary>
+    /// Tag ของแผ่น collider ตัดสินพฤติกรรม 3 อย่างพร้อมกัน
+    ///   SolidGround     = กด ลง+X ลอดไม่ได้ และกระสุนศัตรูระเบิดใส่
+    ///   OneWayPlatform  = ลอดได้ และกระสุนทะลุผ่านเสมอ
+    ///   Untagged        = ลอดได้ แต่ลูกระเบิดบอสยังแตกใส่
+    /// </summary>
+    private static string GetEdgeTag(string tilemapName)
+    {
+        if (tilemapName == OneWayName)
+            return OneWayPlatformTag;
+
+        if (tilemapName == SolidName)
+            return SolidGroundTag;
+
+        return "Untagged";
     }
 
     private static void ClearEdges(GameObject parent)
@@ -311,6 +384,19 @@ public static class TilemapLayerSetup
         effector.rotationalOffset = 0f;
         effector.useSideFriction = false;
         effector.useSideBounce = false;
+    }
+
+    /// <summary>ชั้นไทล์ที่ใช้แผ่น collider บางๆ Tag เป็นตัวบอกว่าลอดได้หรือไม่ได้</summary>
+    private static void SetupTileLayer(GameObject target, string tag)
+    {
+        Require<Tilemap>(target);
+
+        SetLayerAndTag(target, GroundLayerName, tag);
+
+        TilemapRenderer renderer = Require<TilemapRenderer>(target);
+        renderer.sortingOrder = GroundSortingOrder;
+
+        ClearEdges(target);
     }
 
     private static void SetupBackground(GameObject target)

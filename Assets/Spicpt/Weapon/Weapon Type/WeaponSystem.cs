@@ -15,6 +15,14 @@ public class WeaponSystem : MonoBehaviour
     /// <summary>กันตั้งเป็น 0 แล้วยิงรัวจนเกมค้าง</summary>
     [SerializeField] private float minimumFireRate = 0.03f;
 
+    [Header("Rapid Fire (ไอเทมเพิ่มความเร็วยิง)")]
+    /// <summary>คูณช่วงเวลาระหว่างนัด 0.5 = ยิงเร็วขึ้นเท่าตัว</summary>
+    [SerializeField] private float rapidFireMultiplier = 0.5f;
+
+    private bool rapidFire;
+
+    public bool RapidFire => rapidFire;
+
     public WeaponType CurrentWeapon => currentWeapon;
 
     public float CurrentFireRate
@@ -44,6 +52,11 @@ public class WeaponSystem : MonoBehaviour
                 default:
                     rate = normalFireRate;
                     break;
+            }
+
+            if (rapidFire)
+            {
+                rate *= rapidFireMultiplier;
             }
 
             return Mathf.Max(minimumFireRate, rate);
@@ -81,6 +94,20 @@ public class WeaponSystem : MonoBehaviour
         {
             SetWeapon(WeaponType.FireBall);
         }
+    }
+
+    /// <summary>ติดไอเทม R แล้วยิงเร็วขึ้น ติดค้างข้ามการเปลี่ยนอาวุธ</summary>
+    public void EnableRapidFire()
+    {
+        rapidFire = true;
+
+        Debug.Log("Rapid Fire ON");
+    }
+
+    /// <summary>หลุดตอนตาย เหมือนต้นฉบับ</summary>
+    public void DisableRapidFire()
+    {
+        rapidFire = false;
     }
 
     public void SetWeapon(WeaponType newWeapon)

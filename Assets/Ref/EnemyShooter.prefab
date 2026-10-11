@@ -205,11 +205,11 @@ MonoBehaviour:
   firstShotDelay: 0.5
   shoulderOffset: {x: 0, y: 1.42}
   barrelLength: 1.03
-  detectionRange: 12
+  detectionRange: 8
   aimAtPlayer: 1
-  aimHeightOffset: 0.45
+  aimHeightOffset: 0.8
+  useEightDirections: 0
   lowestAimY: -0.8
-  useEightDirections: 1
   playerTag: Player
 --- !u!114 &100009
 MonoBehaviour:

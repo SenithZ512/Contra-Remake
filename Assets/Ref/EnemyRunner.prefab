@@ -203,15 +203,17 @@ MonoBehaviour:
   moveSpeed: 4
   runMode: 0
   fixedDirection: -1
+  edgeBehaviour: 1
+  turnCooldown: 0.25
   jumpOverGaps: 1
-  jumpForce: 11
+  jumpForce: 12
   groundLayer:
     serializedVersion: 2
     m_Bits: 8
-  footOffset: {x: 0, y: 0.08}
-  footRadius: 0.22
+  footOffset: {x: 0, y: 0.15}
+  footRadius: 0.4
   edgeCheckAhead: 0.75
-  edgeCheckDepth: 0.5
+  edgeCheckDepth: 1
   requireLandingSpot: 1
   maxJumpDistance: 3
   landingCheckDepth: 3

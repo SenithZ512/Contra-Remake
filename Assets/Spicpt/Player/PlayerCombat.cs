@@ -16,7 +16,7 @@ public class PlayerCombat : MonoBehaviour
 
     [Header("Laser Beam")]
     [SerializeField] private int laserBulletCount = 2;
-    [SerializeField] private float laserOffsetSpacing = 1.2f;
+    [SerializeField] private float laserOffsetSpacing = 1.6f;
 
     [Header("ปากกระบอกปืน (วัดจากเท้า เลข x เป็นตอนหันขวา)")]
     [SerializeField] private SpriteRenderer spriteRenderer;
@@ -38,8 +38,17 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private KeyCode fireKey = KeyCode.Z;
 
+    /// <summary>
+    /// อาวุธที่กดค้างแล้วยิงรัวได้ นอกรายการนี้ต้องกดทีละนัด
+    /// ตรงกับต้นฉบับที่มีแค่ Machine Gun ยิงอัตโนมัติ
+    /// </summary>
+    [SerializeField] private WeaponType[] autoFireWeapons =
+    {
+        WeaponType.MachineGun
+    };
+
     /// <summary>ค้างท่ายิงไว้อีกนิดหลังปล่อยปุ่ม ไม่งั้นท่าจะกระพริบ</summary>
-    [SerializeField] private float firePoseHold = 0.15f;
+    [SerializeField] private float firePoseHold = 0.2f;
 
     private float nextFireTime;
     private Vector2 currentShootDirection = Vector2.right;
@@ -113,11 +122,23 @@ public class PlayerCombat : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKey(fireKey))
+        bool fireHeld = Input.GetKey(fireKey);
+
+        // ท่าทางยึดตามการ "กดค้าง" เสมอ กดค้างเล็งอยู่ก็ยังเป็นท่ายิง
+        // ถ้าผูกท่ากับจังหวะยิงจริง ปืนกดทีละนัดจะเห็นท่ากระพริบไปมา
+        if (fireHeld)
         {
             aimY = GetShootDirection().y;
             firePoseUntil = Time.time + firePoseHold;
+        }
 
+        // ส่วนกระสุนออกจริงยังแยกตามชนิดปืน
+        bool firePressed = IsAutoFireWeapon()
+            ? fireHeld
+            : Input.GetKeyDown(fireKey);
+
+        if (firePressed)
+        {
             TryShoot();
         }
 
@@ -133,6 +154,20 @@ public class PlayerCombat : MonoBehaviour
 
         animator.SetBool("IsFiring", isFiring);
         animator.SetFloat("AimY", isFiring ? aimY : 0f);
+    }
+
+    private bool IsAutoFireWeapon()
+    {
+        if (weaponSystem == null || autoFireWeapons == null)
+            return false;
+
+        foreach (WeaponType type in autoFireWeapons)
+        {
+            if (type == weaponSystem.CurrentWeapon)
+                return true;
+        }
+
+        return false;
     }
 
     private void TryShoot()
@@ -309,13 +344,16 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
 
-        // ยิงหลายนัดต่อท้ายกันเป็นแถวยาว เรียงตามแนวทิศยิง (นัดหลังอยู่ด้านหลังนัดหน้า)
+        // ยิงหลายนัดต่อท้ายกันเป็นแถวยาว เรียงออกไปข้างหน้าตามแนวทิศยิง
+        // ห้ามเรียงถอยหลัง ไม่งั้นตอนยิงขึ้น นัดท้ายจะไปโผล่ใต้เท้า
+        // เพราะปากกระบอกตอนเล็งขึ้นสูงจากเท้าแค่ 1.1 แต่แถวกระสุนยาวกว่านั้น
         for (int i = 0;
              i < laserBulletCount;
              i++)
         {
+            // คูณสเกลตัวละคร ย่อขยายตัวแล้วระยะเรียงตามให้เอง
             float offset =
-                -laserOffsetSpacing * i;
+                laserOffsetSpacing * i * GetMuzzleScale();
 
             Vector2 spawnPosition =
                 GetFirePointPosition() +

@@ -20,9 +20,20 @@ public class EnemySpawnPoint : MonoBehaviour
     [Header("Limit")]
     [SerializeField] private int maxAlive = 4;
 
-    [Header("Drone Weapon (ใช้เฉพาะตอนปล่อยโดรน)")]
+    [Header("Drop (ใช้กับ WeaponDrone และ WeaponPod)")]
     [SerializeField] private bool overrideDroneWeapon = false;
     [SerializeField] private WeaponType droneWeapon = WeaponType.SpreadGun;
+
+    /// <summary>ให้จุดนี้ปล่อยไอเทมเพิ่มความเร็วยิงแทนอาวุธ</summary>
+    [SerializeField] private bool dropRapidFire = false;
+
+    [Header("Runner Behaviour (ใช้กับ EnemyRunner)")]
+    /// <summary>สั่งทับพฤติกรรมให้จุดเกิดนี้ ต่างจาก prefab กลางได้</summary>
+    [SerializeField] private bool overrideRunnerBehaviour = false;
+    [SerializeField] private EnemyRunner.RunMode runMode =
+        EnemyRunner.RunMode.LockOnSpawn;
+    [SerializeField] private EnemyRunner.EdgeBehaviour edgeBehaviour =
+        EnemyRunner.EdgeBehaviour.TurnAround;
 
     private Transform cameraTransform;
     private readonly List<GameObject> spawned = new List<GameObject>();
@@ -91,17 +102,59 @@ public class EnemySpawnPoint : MonoBehaviour
         );
 
         // สั่งทับค่าเฉพาะตัวหลังเกิด ทำให้จุดเกิดแต่ละจุดต่างกันได้ทั้งที่ใช้ prefab ตัวเดียวกัน
-        if (overrideDroneWeapon)
-        {
-            WeaponDrone drone = enemy.GetComponent<WeaponDrone>();
+        ApplyDropOverride(enemy);
+        ApplyRunnerOverride(enemy);
 
-            if (drone != null)
+        spawned.Add(enemy);
+    }
+
+    /// <summary>รองรับทั้งโดรนและป้อมอาวุธ ตัวไหนไม่มีก็ข้ามไป</summary>
+    private void ApplyDropOverride(GameObject enemy)
+    {
+        if (!overrideDroneWeapon && !dropRapidFire)
+            return;
+
+        WeaponDrone drone = enemy.GetComponent<WeaponDrone>();
+
+        if (drone != null)
+        {
+            if (dropRapidFire)
+            {
+                drone.SetDropRapidFire(true);
+            }
+            else
             {
                 drone.SetWeapon(droneWeapon);
             }
         }
 
-        spawned.Add(enemy);
+        WeaponPod pod = enemy.GetComponent<WeaponPod>();
+
+        if (pod != null)
+        {
+            if (dropRapidFire)
+            {
+                pod.SetDropRapidFire(true);
+            }
+            else
+            {
+                pod.SetWeapon(droneWeapon);
+            }
+        }
+    }
+
+    private void ApplyRunnerOverride(GameObject enemy)
+    {
+        if (!overrideRunnerBehaviour)
+            return;
+
+        EnemyRunner runner = enemy.GetComponent<EnemyRunner>();
+
+        if (runner == null)
+            return;
+
+        runner.SetRunMode(runMode);
+        runner.SetEdgeBehaviour(edgeBehaviour);
     }
 
     private int CountAlive()

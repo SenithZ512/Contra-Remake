@@ -11,6 +11,14 @@ public class WeaponDrone : MonoBehaviour
     [SerializeField] private GameObject weaponPickupPrefab;
     [SerializeField] private Vector2 dropOffset = Vector2.zero;
 
+    [Header("Rapid Fire (ไอเทม R)")]
+    /// <summary>บังคับให้ชิ้นนี้เป็นไอเทมยิงรัวแทนอาวุธ</summary>
+    [SerializeField] private bool dropRapidFire;
+
+    /// <summary>โอกาสสุ่มออกเป็นไอเทมยิงรัว 0 = ไม่สุ่มเลย 1 = ออกแน่นอน</summary>
+    [Range(0f, 1f)]
+    [SerializeField] private float rapidFireChance;
+
     [Header("Flight")]
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float flyDirection = -1f;
@@ -52,6 +60,16 @@ public class WeaponDrone : MonoBehaviour
     /// ให้จุดเกิดกำหนดอาวุธเฉพาะตัวได้ โดยไม่ต้องไปแก้ prefab กลาง
     /// เรียกหลัง Instantiate ได้เลย จะทับค่าสุ่มที่ Awake ตั้งไว้
     /// </summary>
+    /// <summary>
+    /// ให้จุดเกิดสั่งว่าตัวนี้ปล่อยไอเทม R แทนอาวุธ
+    /// เรียกหลัง Instantiate ได้เลย จะทับค่าใน prefab
+    /// </summary>
+    public void SetDropRapidFire(bool value)
+    {
+        dropRapidFire = value;
+        rapidFireChance = value ? 1f : 0f;
+    }
+
     public void SetWeapon(WeaponType type)
     {
         randomWeapon = false;
@@ -117,7 +135,14 @@ public class WeaponDrone : MonoBehaviour
             return;
         }
 
-        pickup.SetWeaponType(weaponType);
+        if (dropRapidFire || Random.value < rapidFireChance)
+        {
+            pickup.SetRapidFire();
+        }
+        else
+        {
+            pickup.SetWeaponType(weaponType);
+        }
     }
 
     /// <summary>สุ่มเฉพาะอาวุธพิเศษ ไม่รวมปืนพื้นฐานที่มีอยู่แล้ว</summary>

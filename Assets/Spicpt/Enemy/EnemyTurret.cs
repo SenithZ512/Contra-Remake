@@ -20,6 +20,9 @@ public class EnemyTurret : MonoBehaviour
     [SerializeField] private Vector2 facingDirection = Vector2.left;
     [SerializeField] private float maxAimAngle = 80f;
 
+    /// <summary>ยิงได้แค่ 8 ทิศ ไม่เล็งองศาอิสระ</summary>
+    [SerializeField] private bool useEightDirections = true;
+
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
 
@@ -108,7 +111,8 @@ public class EnemyTurret : MonoBehaviour
             return;
 
         Vector2 firePosition = GetFirePosition();
-        Vector2 direction = (GetAimPoint() - firePosition).normalized;
+        Vector2 direction =
+            Snap((GetAimPoint() - firePosition).normalized);
 
         GameObject bulletObject = Instantiate(
             enemyBulletPrefab,
@@ -142,12 +146,33 @@ public class EnemyTurret : MonoBehaviour
         if (direction.sqrMagnitude <= 0.001f)
             return;
 
+        direction = Snap(direction.normalized);
+
         float angle = Mathf.Atan2(
             direction.y,
             direction.x
         ) * Mathf.Rad2Deg;
 
         barrel.rotation = Quaternion.Euler(0f, 0f, angle);
+    }
+
+    /// <summary>
+    /// ปัดมุมลงช่องละ 45 องศา เหลือ 8 ทิศ (แนวนอน แนวตั้ง และเฉียง)
+    /// กติกาเดียวกับผู้เล่นและทหารเดินดิน
+    /// </summary>
+    private Vector2 Snap(Vector2 direction)
+    {
+        if (!useEightDirections)
+            return direction;
+
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+
+        float snapped = Mathf.Round(angle / 45f) * 45f * Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(snapped),
+            Mathf.Sin(snapped)
+        ).normalized;
     }
 
     private Vector2 GetFirePosition()

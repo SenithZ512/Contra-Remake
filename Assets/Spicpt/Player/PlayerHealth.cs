@@ -16,9 +16,31 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private float respawnHeightOffset = 5f;
     [SerializeField] private float respawnEdgeMargin = 1.5f;
 
+    /// <summary>
+    /// ความเร็วตอนโผล่มาเกิดใหม่ ให้ลอยเฉียงเข้าจอทางขวานิดหน่อย
+    /// แบบต้นฉบับที่ตัวละครร่วงลงมาพร้อมเคลื่อนเข้าสนาม ไม่ใช่ตกดิ่งนิ่งๆ
+    /// </summary>
+    [SerializeField] private Vector2 respawnDropVelocity =
+        new Vector2(2.5f, 1.5f);
+
     [Header("References")]
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private CameraFollow cameraFollow;
+
+    [Header("Fall Death (ตกเหวแล้วตาย)")]
+    [SerializeField] private bool dieWhenFalling = true;
+
+    /// <summary>ก้นเหว ต่ำกว่าเส้นนี้เมื่อไหร่ = ตาย เป็นเส้นตายตัวในโลก</summary>
+    [SerializeField] private float fallDeathY = -8f;
+
+    /// <summary>
+    /// วัดจากขอบล่างจอแทนเส้นตายตัว
+    /// เหมาะกับเกมที่กล้องเลื่อนขึ้นลงตามผู้เล่นเท่านั้น
+    /// กล้องของเกมนี้ล็อกแนวตั้งอยู่ ใช้เส้นตายตัวจะคาดเดาง่ายกว่า
+    /// </summary>
+    [SerializeField] private bool useCameraBottom;
+
+    [SerializeField] private float fallDeathMargin = 2f;
 
     [Header("Weapon")]
     [SerializeField] private bool resetWeaponOnDeath = true;
@@ -33,6 +55,7 @@ public class PlayerHealth : MonoBehaviour
     private bool isDead;
     private bool isInvulnerable;
     private Vector2 spawnPosition;
+    private Camera mainCamera;
 
     public bool IsDead => isDead;
     public int CurrentLives => currentLives;
@@ -52,6 +75,59 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = maxHealth;
         currentLives = startingLives;
         spawnPosition = transform.position;
+
+        mainCamera = Camera.main;
+    }
+
+    private void Update()
+    {
+        CheckFallDeath();
+    }
+
+    /// <summary>ตกต่ำกว่าขอบล่างจอ = ตายทันที แบบ Contra ต้นฉบับ</summary>
+    private void CheckFallDeath()
+    {
+        if (!dieWhenFalling || isDead)
+            return;
+
+        if (transform.position.y > GetFallDeathLine())
+            return;
+
+        // ตกจอแล้วตายเลย ไม่สนช่วงอมตะหลังเกิดใหม่
+        currentHealth = 0;
+
+        Die();
+    }
+
+    private float GetFallDeathLine()
+    {
+        if (!useCameraBottom)
+            return fallDeathY;
+
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
+
+        if (mainCamera == null || !mainCamera.orthographic)
+            return fallDeathY;
+
+        return mainCamera.transform.position.y -
+            mainCamera.orthographicSize -
+            fallDeathMargin;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // ขีดเส้นก้นเหวให้เห็นว่าตกถึงไหนถึงตาย
+        float y = Application.isPlaying
+            ? GetFallDeathLine()
+            : fallDeathY;
+
+        Gizmos.DrawLine(
+            new Vector3(transform.position.x - 20f, y, 0f),
+            new Vector3(transform.position.x + 20f, y, 0f)
+        );
     }
 
     public void TakeDamage(int damage)
@@ -77,6 +153,7 @@ public class PlayerHealth : MonoBehaviour
         if (resetWeaponOnDeath && weaponSystem != null)
         {
             weaponSystem.SetWeapon(WeaponType.Normal);
+            weaponSystem.DisableRapidFire();
         }
 
         if (currentLives <= 0)
@@ -99,15 +176,17 @@ public class PlayerHealth : MonoBehaviour
 
         transform.position = GetRespawnPosition();
 
-        if (rb != null)
-        {
-            rb.velocity = Vector2.zero;
-        }
-
         currentHealth = maxHealth;
         isDead = false;
 
         SetPlayerActive(true);
+
+        // ต้องสั่งหลังเปิดสคริปต์กลับมา ไม่งั้น HandleMovement เฟรมถัดไปจะล้างทิ้ง
+        // ใส่ความเร็วแกน X ไว้ด้วย ตัวจะได้ลอยเฉียงเข้าจอ ดูมีน้ำหนัก
+        if (rb != null)
+        {
+            rb.velocity = respawnDropVelocity;
+        }
 
         yield return StartCoroutine(InvulnerableRoutine());
     }

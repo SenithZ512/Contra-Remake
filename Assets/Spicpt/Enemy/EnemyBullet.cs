@@ -18,6 +18,9 @@ public class EnemyBullet : MonoBehaviour
     /// </summary>
     [SerializeField] private bool stopOnAnyGround;
 
+    /// <summary>Tag ของแท่นลอยที่กระสุนทะลุผ่านได้เสมอ</summary>
+    [SerializeField] private string oneWayPlatformTag = "OneWayPlatform";
+
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
 
@@ -40,6 +43,12 @@ public class EnemyBullet : MonoBehaviour
 
     public void Initialize(Vector2 direction)
     {
+        Initialize(direction, 1f);
+    }
+
+    /// <summary>speedMultiplier ใช้สุ่มระยะยิง ลูกเร็วกว่า = ตกไกลกว่า</summary>
+    public void Initialize(Vector2 direction, float speedMultiplier)
+    {
         if (rb == null)
             return;
 
@@ -51,7 +60,7 @@ public class EnemyBullet : MonoBehaviour
         direction.Normalize();
 
         rb.velocity = Vector2.zero;
-        rb.velocity = direction * speed;
+        rb.velocity = direction * speed * speedMultiplier;
 
         float angle = Mathf.Atan2(
             direction.y,
@@ -103,8 +112,13 @@ public class EnemyBullet : MonoBehaviour
             return;
         }
 
-        // พื้นต่างระดับ (One-Way Platform) ยิงทะลุได้ตามต้นฉบับ Contra
-        // ยกเว้นลูกที่ตั้ง stopOnAnyGround ไว้ ซึ่งต้องกระแทกพื้นให้ได้ทุกแบบ
+        // แท่นลอยติด Tag ไว้ ทะลุเสมอ แม้ลูกนั้นจะตั้ง stopOnAnyGround
+        // จะได้ระเบิดเฉพาะพื้นหลัก ไม่ไปแตกใส่แท่นบางๆ กลางอากาศ
+        if (other.CompareTag(oneWayPlatformTag))
+            return;
+
+        // พื้นต่างระดับอื่น ยิงทะลุได้ตามต้นฉบับ Contra
+        // ยกเว้นลูกที่ตั้ง stopOnAnyGround ไว้
         if (!stopOnAnyGround &&
             other.GetComponent<PlatformEffector2D>() != null &&
             !other.CompareTag("SolidGround"))

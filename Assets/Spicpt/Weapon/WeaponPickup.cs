@@ -2,7 +2,17 @@ using UnityEngine;
 
 public class WeaponPickup : MonoBehaviour
 {
+    public enum PickupKind
+    {
+        /// <summary>เปลี่ยนอาวุธ</summary>
+        Weapon,
+
+        /// <summary>ไอเทม R เพิ่มความเร็วยิงของอาวุธที่ถืออยู่</summary>
+        RapidFire
+    }
+
     [Header("Weapon")]
+    [SerializeField] private PickupKind kind = PickupKind.Weapon;
     [SerializeField] private WeaponType weaponType = WeaponType.SpreadGun;
 
     [Header("Falling")]
@@ -10,6 +20,13 @@ public class WeaponPickup : MonoBehaviour
     [SerializeField] private float gravityScale = 3f;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float groundCheckRadius = 0.25f;
+
+    /// <summary>
+    /// ห้ามลงจอดในช่วงนี้หลังถูกดีดออกมา
+    /// ไม่งั้นถ้าป้อมตั้งอยู่บนพื้น ไอเทมจะนับว่าถึงพื้นตั้งแต่เฟรมแรก
+    /// แล้วหยุดนิ่งทันทีโดยไม่ทันได้ลอย
+    /// </summary>
+    [SerializeField] private float launchLockDuration = 0.25f;
 
     [Header("Motion")]
     [SerializeField] private float bobAmplitude = 0.2f;
@@ -28,6 +45,7 @@ public class WeaponPickup : MonoBehaviour
     private Vector2 origin;
     private float elapsed;
     private bool hasLanded;
+    private float landLockUntil;
 
     private void Awake()
     {
@@ -64,6 +82,9 @@ public class WeaponPickup : MonoBehaviour
     private void FixedUpdate()
     {
         if (hasLanded || rb == null)
+            return;
+
+        if (Time.time < landLockUntil)
             return;
 
         // collider เป็น trigger เลยชนพื้นเองไม่ได้ ต้องเช็คด้วย overlap แล้วสั่งหยุดเอง
@@ -105,6 +126,35 @@ public class WeaponPickup : MonoBehaviour
         transform.position = origin + new Vector2(0f, bob);
     }
 
+    /// <summary>
+    /// ดีดไอเทมให้กระเด็นลอยเป็นเส้นโค้งตอนเกิด
+    /// เรียกหลัง Instantiate ได้เลย
+    /// </summary>
+    public void Launch(Vector2 velocity)
+    {
+        if (rb == null)
+            return;
+
+        rb.bodyType = RigidbodyType2D.Dynamic;
+        rb.gravityScale = gravityScale;
+        rb.velocity = velocity;
+
+        hasLanded = false;
+
+        landLockUntil = Time.time + launchLockDuration;
+    }
+
+    /// <summary>
+    /// สั่งให้ชิ้นนี้กลายเป็นไอเทมยิงรัวหลัง Instantiate
+    /// ใช้ prefab เดิมได้เลย ไม่ต้องมี prefab แยก
+    /// </summary>
+    public void SetRapidFire()
+    {
+        kind = PickupKind.RapidFire;
+
+        ApplyWeaponColor();
+    }
+
     /// <summary>ให้โดรนกำหนดว่าไอเทมชิ้นนี้เป็นอาวุธอะไร ตอนดรอปออกมา</summary>
     public void SetWeaponType(WeaponType type)
     {
@@ -124,7 +174,14 @@ public class WeaponPickup : MonoBehaviour
         if (weaponSystem == null)
             return;
 
-        weaponSystem.SetWeapon(weaponType);
+        if (kind == PickupKind.RapidFire)
+        {
+            weaponSystem.EnableRapidFire();
+        }
+        else
+        {
+            weaponSystem.SetWeapon(weaponType);
+        }
 
         Destroy(gameObject);
     }
@@ -134,7 +191,10 @@ public class WeaponPickup : MonoBehaviour
         if (spriteRenderer == null)
             return;
 
-        spriteRenderer.color = GetWeaponColor(weaponType);
+        // ไอเทมยิงรัวใช้สีเหลืองสดแยกจากอาวุธ จะได้ไม่สับสนกับ Spread/FireBall
+        spriteRenderer.color = kind == PickupKind.RapidFire
+            ? new Color(1f, 0.95f, 0.2f)
+            : GetWeaponColor(weaponType);
     }
 
     private static Color GetWeaponColor(WeaponType type)

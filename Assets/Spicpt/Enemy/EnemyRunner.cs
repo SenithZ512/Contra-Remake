@@ -23,12 +23,34 @@ public class EnemyRunner : MonoBehaviour
     /// <summary>ใช้ตอนโหมด Fixed Direction และใช้เป็นทางสำรองถ้าหาผู้เล่นไม่เจอ</summary>
     [SerializeField] private float fixedDirection = -1f;
 
+    public enum EdgeBehaviour
+    {
+        /// <summary>กระโดดข้ามไปฝั่งตรงข้าม</summary>
+        JumpAcross,
+
+        /// <summary>กลับตัวเดินย้อนกลับ กลายเป็นเดินวนไปมาบนแท่นเดิม</summary>
+        TurnAround,
+
+        /// <summary>เดินตกลงไปเลย ไม่สนใจขอบ</summary>
+        WalkOff
+    }
+
+    [Header("Edge Behaviour (พฤติกรรมตอนถึงขอบพื้น)")]
+    [SerializeField] private EdgeBehaviour edgeBehaviour = EdgeBehaviour.TurnAround;
+
+    /// <summary>หน่วงหลังกลับตัว กันสั่นกลับไปกลับมาตอนยืนคร่อมขอบพอดี</summary>
+    [SerializeField] private float turnCooldown = 0.25f;
+
     [Header("Jump Over Gaps")]
     [SerializeField] private bool jumpOverGaps = true;
     [SerializeField] private float jumpForce = 11f;
     [SerializeField] private LayerMask groundLayer = 1 << 3;
 
-    /// <summary>จุดเท้า วัดจาก transform (ซึ่งอยู่ที่เท้าอยู่แล้ว)</summary>
+    /// <summary>
+    /// จุดเช็คพื้น วัดจาก transform (ซึ่งอยู่ที่เท้าอยู่แล้ว)
+    /// พื้นในด่านเป็นแผ่นบาง 0.1 ที่อยู่ "ใต้" ผิวพื้นพอดี
+    /// จุดนี้ต้องอยู่ต่ำพอให้วงกลมคร่อมแผ่นได้ ไม่งั้นหาพื้นไม่เจอเลย
+    /// </summary>
     [SerializeField] private Vector2 footOffset = new Vector2(0f, 0.08f);
     [SerializeField] private float footRadius = 0.22f;
 
@@ -54,6 +76,10 @@ public class EnemyRunner : MonoBehaviour
     private float lockedDirection;
 
     private float nextJumpTime;
+
+    /// <summary>ทิศที่กลับตัวไว้ ทับทุกโหมดเพราะเดินวนอยู่บนแท่นแล้ว</summary>
+    private float turnDirection;
+    private float nextTurnTime;
 
     private void Awake()
     {
@@ -104,6 +130,20 @@ public class EnemyRunner : MonoBehaviour
             : Mathf.Sign(difference);
     }
 
+    /// <summary>
+    /// ให้จุดเกิดสั่งพฤติกรรมเฉพาะตัวได้ โดยไม่ต้องแยก prefab
+    /// เรียกหลัง Instantiate ทันที จะทันก่อน Start() ที่ล็อกทิศทาง
+    /// </summary>
+    public void SetRunMode(RunMode mode)
+    {
+        runMode = mode;
+    }
+
+    public void SetEdgeBehaviour(EdgeBehaviour behaviour)
+    {
+        edgeBehaviour = behaviour;
+    }
+
     private void FixedUpdate()
     {
         if (rb == null)
@@ -118,7 +158,38 @@ public class EnemyRunner : MonoBehaviour
 
         UpdateFacing(direction);
 
-        TryJumpOverGap(direction);
+        HandleEdge(direction);
+    }
+
+    private void HandleEdge(float direction)
+    {
+        if (edgeBehaviour == EdgeBehaviour.WalkOff)
+            return;
+
+        if (edgeBehaviour == EdgeBehaviour.JumpAcross)
+        {
+            TryJumpOverGap(direction);
+            return;
+        }
+
+        TryTurnAround(direction);
+    }
+
+    /// <summary>ถึงขอบแล้วกลับตัว เดินวนไปมาอยู่บนแท่นเดิม</summary>
+    private void TryTurnAround(float direction)
+    {
+        if (Time.time < nextTurnTime)
+            return;
+
+        if (!IsGrounded())
+            return;
+
+        if (!IsAtLedge(direction))
+            return;
+
+        turnDirection = -direction;
+
+        nextTurnTime = Time.time + turnCooldown;
     }
 
     /// <summary>ถึงขอบพื้นเมื่อไหร่ก็กระโดดข้ามไปฝั่งตรงข้าม</summary>
@@ -226,6 +297,12 @@ public class EnemyRunner : MonoBehaviour
 
     private float GetMoveDirection()
     {
+        // กลับตัวที่ขอบแล้วก็เดินวนตามนั้น ทับทุกโหมด
+        if (turnDirection != 0f)
+        {
+            return turnDirection;
+        }
+
         // ล็อกทางไว้แล้วก็วิ่งตรงไปเลย ไม่กลับตัวตามผู้เล่น
         if (lockedDirection != 0f)
         {

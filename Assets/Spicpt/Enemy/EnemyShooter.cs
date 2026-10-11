@@ -17,7 +17,13 @@ public class EnemyShooter : MonoBehaviour
     [Header("Aiming")]
     [SerializeField] private float detectionRange = 12f;
     [SerializeField] private bool aimAtPlayer = true;
-    [SerializeField] private float aimHeightOffset = 0.9f;
+    /// <summary>
+    /// เล็งสูงจากเท้าผู้เล่นเท่าไหร่
+    /// ต้องสูงกว่าหัวตอนคลาน ไม่งั้นคลานหลบกระสุนไม่ได้
+    /// ใช้ transform.position ซึ่งอยู่ที่เท้าและไม่ขยับตอนคลาน
+    /// จุดเล็งเลยคงที่ ผู้เล่นย่อตัวลงไปใต้แนวกระสุนได้จริง
+    /// </summary>
+    [SerializeField] private float aimHeightOffset = 0.8f;
 
     /// <summary>ยิงได้แค่ 8 ทิศเหมือนผู้เล่น ไม่ใช่เล็งองศาอิสระ</summary>
     [SerializeField] private bool useEightDirections = true;

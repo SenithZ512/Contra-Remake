@@ -500,11 +500,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f78a902eb8848f6b6da82c575d35792, type: 3}
   m_Name:
   m_EditorClassIdentifier:
+  fireMode: 1
+  fireRate: 2.8
+  burstCount: 3
+  burstInterval: 0.15
+  openFireDuration: 6
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 0dde4c088da24737b0f3c4d42893e0a4, type: 3}
   bulletsPerShot: 1
   spreadAngle: 28
   shotsWhileOpen: 6
   shotInterval: 0.35
+  randomizeShotCount: 1
+  minShots: 3
+  maxShots: 7
+  randomizeLaunchAngle: 1
+  launchAngleRange: {x: 10, y: 45}
+  speedMultiplierRange: {x: 0.85, y: 1.2}
   closedDuration: 1.5
   openWarmUp: 0.4
   openHold: 1.4
@@ -521,8 +532,9 @@ MonoBehaviour:
   detectionRange: 18
   aimHeightOffset: 0.45
   facingDirection: {x: -1, y: 0}
-  maxAimAngle: 90
+  maxAimAngle: 180
   barrelLength: 1
+  useEightDirections: 1
   playerTag: Player
   spriteRenderer: {fileID: 800032}
 --- !u!1 &800040
@@ -702,11 +714,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f78a902eb8848f6b6da82c575d35792, type: 3}
   m_Name:
   m_EditorClassIdentifier:
+  fireMode: 1
+  fireRate: 2.8
+  burstCount: 3
+  burstInterval: 0.15
+  openFireDuration: 6
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 0dde4c088da24737b0f3c4d42893e0a4, type: 3}
   bulletsPerShot: 1
   spreadAngle: 28
   shotsWhileOpen: 6
   shotInterval: 0.35
+  randomizeShotCount: 1
+  minShots: 3
+  maxShots: 7
+  randomizeLaunchAngle: 1
+  launchAngleRange: {x: 10, y: 45}
+  speedMultiplierRange: {x: 0.85, y: 1.2}
   closedDuration: 1.5
   openWarmUp: 0.4
   openHold: 1.4
@@ -723,8 +746,9 @@ MonoBehaviour:
   detectionRange: 18
   aimHeightOffset: 0.45
   facingDirection: {x: -1, y: 0}
-  maxAimAngle: 90
+  maxAimAngle: 180
   barrelLength: 1
+  useEightDirections: 1
   playerTag: Player
   spriteRenderer: {fileID: 800042}
 --- !u!1 &800050

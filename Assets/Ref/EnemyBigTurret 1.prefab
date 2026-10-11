@@ -34,8 +34,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 17.13, y: 0.05, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 700011}
   m_Father: {fileID: 0}
@@ -166,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31e22986be1a4db48fe88394d39c4440, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 12
+  maxHealth: 8
   deathEffectPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
   deathEffectOffset: {x: 0, y: 0}
   knockbackOnDeath: 0
@@ -201,14 +201,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f78a902eb8848f6b6da82c575d35792, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fireMode: 0
+  fireRate: 1.2
+  firstShotDelay: 0.5
+  burstCount: 3
+  burstInterval: 0.15
+  openFireDuration: 4
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 4832dc64b04140eca466c2e7cdef2cab, type: 3}
   bulletsPerShot: 1
   spreadAngle: 40
   shotsWhileOpen: 2
-  shotInterval: 1
-  closedDuration: 2
-  openWarmUp: 3
-  openHold: 4.5
+  shotInterval: 0.15
+  randomizeShotCount: 0
+  minShots: 3
+  maxShots: 4
+  randomizeLaunchAngle: 1
+  launchAngleRange: {x: 10, y: 45}
+  speedMultiplierRange: {x: 1, y: 1}
+  closedDuration: 1.5
+  openWarmUp: 0.5
+  openHold: 1.5
   closedColor: {r: 0.7430481, g: 0.7430481, b: 0.81761, a: 1}
   openColor: {r: 1, g: 0.45, b: 0.2, a: 1}
   openPulseColor: {r: 1, g: 0.95, b: 0.5, a: 1}
@@ -219,11 +231,12 @@ MonoBehaviour:
   - 35
   - 12
   - 45
-  detectionRange: 16
-  aimHeightOffset: 0.45
+  detectionRange: 6.7
+  aimHeightOffset: 0.8
   facingDirection: {x: -1, y: 0}
-  maxAimAngle: 80
+  maxAimAngle: 180
   barrelLength: 1.2
+  useEightDirections: 1
   playerTag: Player
   spriteRenderer: {fileID: 700002}
 --- !u!114 &700008
@@ -241,6 +254,18 @@ MonoBehaviour:
   margin: 4
   despawnWhenFalling: 0
   minY: -20
+--- !u!114 &700013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 700000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &700010
 GameObject:
   m_ObjectHideFlags: 0
@@ -325,15 +350,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &700013
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 700000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

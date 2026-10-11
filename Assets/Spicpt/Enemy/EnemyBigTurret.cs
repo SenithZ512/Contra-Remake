@@ -8,12 +8,53 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyHealth))]
 public class EnemyBigTurret : MonoBehaviour
 {
+    public enum FireMode
+    {
+        /// <summary>ยิงเป็นชุดเล็งตรงไปที่ผู้เล่น เหมือน EnemyTurret ทุกอย่าง</summary>
+        Burst,
+
+        /// <summary>ยิงลูกระเบิดวิถีโค้งตามมุมที่ตั้ง ใช้กับป้อมบอส</summary>
+        Lobbed
+    }
+
+    [Header("Fire Mode")]
+    [SerializeField] private FireMode fireMode = FireMode.Burst;
+
+    [Header("Burst (โหมด Burst เท่านั้น)")]
+    /// <summary>เว้นระหว่างชุด เหมือน Fire Rate ของ EnemyTurret</summary>
+    [SerializeField] private float fireRate = 2.8f;
+
+    /// <summary>หน่วงก่อนเริ่มรอบแรก กันป้อมทุกตัวในจอยิงพร้อมกันเป๊ะ</summary>
+    [SerializeField] private float firstShotDelay = 0.5f;
+
+    /// <summary>จำนวนนัดในหนึ่งชุด</summary>
+    [SerializeField] private int burstCount = 3;
+
+    /// <summary>เว้นระหว่างนัดในชุดเดียวกัน</summary>
+    [SerializeField] private float burstInterval = 0.15f;
+
+    /// <summary>เปิดฝาแล้วยิงเป็นชุดต่อเนื่องนานเท่านี้ ก่อนเข้าช่วง Open Hold</summary>
+    [SerializeField] private float openFireDuration = 6f;
+
     [Header("Shooting")]
     [SerializeField] private GameObject enemyBulletPrefab;
     [SerializeField] private int bulletsPerShot = 5;
     [SerializeField] private float spreadAngle = 40f;
     [SerializeField] private int shotsWhileOpen = 2;
     [SerializeField] private float shotInterval = 0.7f;
+
+    [Header("Random (สุ่มให้จับทางยาก)")]
+    /// <summary>สุ่มจำนวนนัดต่อรอบ แทนการใช้ Shots While Open ตายตัว</summary>
+    [SerializeField] private bool randomizeShotCount = true;
+    [SerializeField] private int minShots = 3;
+    [SerializeField] private int maxShots = 7;
+
+    /// <summary>สุ่มมุมยิงอิสระ แทนการวนตาม Launch Angles</summary>
+    [SerializeField] private bool randomizeLaunchAngle = true;
+    [SerializeField] private Vector2 launchAngleRange = new Vector2(10f, 45f);
+
+    /// <summary>คูณความเร็วกระสุน ทำให้ระยะตกต่างกันไปในแต่ละนัด</summary>
+    [SerializeField] private Vector2 speedMultiplierRange = new Vector2(0.85f, 1.2f);
 
     [Header("Open / Close")]
     [SerializeField] private float closedDuration = 2f;
@@ -32,6 +73,9 @@ public class EnemyBigTurret : MonoBehaviour
     [SerializeField] private Vector2 facingDirection = Vector2.left;
     [SerializeField] private float maxAimAngle = 80f;
     [SerializeField] private float barrelLength = 1.2f;
+
+    /// <summary>ยิงได้แค่ 8 ทิศ ไม่เล็งองศาอิสระ</summary>
+    [SerializeField] private bool useEightDirections = true;
 
     [Header("Player")]
     [SerializeField] private string playerTag = "Player";
@@ -78,6 +122,11 @@ public class EnemyBigTurret : MonoBehaviour
 
     private IEnumerator CycleRoutine()
     {
+        if (firstShotDelay > 0f)
+        {
+            yield return new WaitForSeconds(firstShotDelay);
+        }
+
         while (true)
         {
             SetOpen(false);
@@ -89,14 +138,35 @@ public class EnemyBigTurret : MonoBehaviour
 
             yield return new WaitForSeconds(openWarmUp);
 
-            for (int i = 0; i < Mathf.Max(1, shotsWhileOpen); i++)
+            if (fireMode == FireMode.Burst)
             {
-                if (CanSeePlayer())
-                {
-                    FireSpread();
-                }
+                // ยิงเป็นชุดซ้ำๆ ทุก fireRate ตลอดช่วงที่เปิดฝา
+                // จังหวะเดียวกับ EnemyTurret แค่ทำได้เฉพาะตอนฝาเปิด
+                float stopAt = Time.time + openFireDuration;
 
-                yield return new WaitForSeconds(shotInterval);
+                while (Time.time < stopAt)
+                {
+                    yield return StartCoroutine(FireBurst());
+
+                    yield return new WaitForSeconds(fireRate);
+                }
+            }
+            else
+            {
+                int shots = randomizeShotCount
+                    ? Random.Range(Mathf.Min(minShots, maxShots),
+                                   Mathf.Max(minShots, maxShots) + 1)
+                    : shotsWhileOpen;
+
+                for (int i = 0; i < Mathf.Max(1, shots); i++)
+                {
+                    if (CanSeePlayer())
+                    {
+                        FireSpread();
+                    }
+
+                    yield return new WaitForSeconds(shotInterval);
+                }
             }
 
             // ยิงเสร็จแล้วยังเปิดค้างอีกพัก ให้ผู้เล่นมีเวลาเข้าไปสอย
@@ -155,18 +225,52 @@ public class EnemyBigTurret : MonoBehaviour
     {
         Vector2 baseDirection = facingDirection.normalized;
 
-        if (launchAngles == null || launchAngles.Length == 0)
-            return baseDirection;
+        float elevation;
 
-        float elevation =
-            launchAngles[shotIndex % launchAngles.Length];
+        if (randomizeLaunchAngle)
+        {
+            elevation = Random.Range(
+                Mathf.Min(launchAngleRange.x, launchAngleRange.y),
+                Mathf.Max(launchAngleRange.x, launchAngleRange.y)
+            );
+        }
+        else
+        {
+            if (launchAngles == null || launchAngles.Length == 0)
+                return baseDirection;
 
-        shotIndex++;
+            elevation = launchAngles[shotIndex % launchAngles.Length];
+
+            shotIndex++;
+        }
 
         Vector2 up = RotateDirection(baseDirection, elevation);
         Vector2 down = RotateDirection(baseDirection, -elevation);
 
         return up.y >= down.y ? up : down;
+    }
+
+    /// <summary>
+    /// ยกโครงมาจาก EnemyTurret ทั้งดุ้น เล็งใหม่ทุกนัด ยิงตรง ไม่กระจาย
+    /// ต่างกันแค่ป้อมใหญ่ยิงได้เฉพาะตอนเปิดฝาเท่านั้น
+    /// </summary>
+    private IEnumerator FireBurst()
+    {
+        for (int i = 0; i < Mathf.Max(1, burstCount); i++)
+        {
+            // เล็งใหม่ทุกนัด ผู้เล่นที่วิ่งหนีจะได้ยังโดนไล่ยิง
+            if (!CanSeePlayer())
+                break;
+
+            Vector2 firePosition = GetFirePosition();
+
+            Vector2 direction =
+                Snap((GetAimPoint() - firePosition).normalized);
+
+            SpawnBullet(firePosition, direction);
+
+            yield return new WaitForSeconds(burstInterval);
+        }
     }
 
     private void FireSpread()
@@ -177,7 +281,7 @@ public class EnemyBigTurret : MonoBehaviour
         Vector2 firePosition = GetFirePosition();
 
         Vector2 aimDirection = aimAtPlayer
-            ? (GetAimPoint() - firePosition).normalized
+            ? Snap((GetAimPoint() - firePosition).normalized)
             : GetLaunchDirection();
 
         int count = Mathf.Max(1, bulletsPerShot);
@@ -222,7 +326,31 @@ public class EnemyBigTurret : MonoBehaviour
             return;
         }
 
-        bullet.Initialize(direction);
+        float speedMultiplier = Random.Range(
+            Mathf.Min(speedMultiplierRange.x, speedMultiplierRange.y),
+            Mathf.Max(speedMultiplierRange.x, speedMultiplierRange.y)
+        );
+
+        bullet.Initialize(direction, speedMultiplier);
+    }
+
+    /// <summary>
+    /// ปัดมุมลงช่องละ 45 องศา เหลือ 8 ทิศ (แนวนอน แนวตั้ง และเฉียง)
+    /// กติกาเดียวกับผู้เล่นและทหารเดินดิน
+    /// </summary>
+    private Vector2 Snap(Vector2 direction)
+    {
+        if (!useEightDirections)
+            return direction;
+
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+
+        float snapped = Mathf.Round(angle / 45f) * 45f * Mathf.Deg2Rad;
+
+        return new Vector2(
+            Mathf.Cos(snapped),
+            Mathf.Sin(snapped)
+        ).normalized;
     }
 
     private static Vector2 RotateDirection(Vector2 direction, float angle)

@@ -27,6 +27,11 @@ public static class PlayerAnimationSetup
     private const string FolderRunFire = "Run And Fire";
     private const string FolderAimUp = "Running and aiming diagonally up";
     private const string FolderAimDown = "Running shot, angled downwards_";
+    private const string FolderAimUpStraight = "Shoot straight up";
+    private const string FolderCrouchFire = "Crawl-firing";
+
+    /// <summary>ไม่มีโฟลเดอร์ท่าหมอบเฉยๆ ใช้เฟรมแรกของท่าคลานยิงแทน</summary>
+    private const string FolderCrouch = "PlayerCrouch";
 
     private const int CycleFrameRate = 16;
 
@@ -35,7 +40,7 @@ public static class PlayerAnimationSetup
     private const string SpritePath = "Visual/Sprite";
 
     /// <summary>ตีลังกา 1 รอบใช้กี่วินาที ยิ่งมากยิ่งหมุนช้า กระโดดครั้งนึงลอยราว 1 วิ</summary>
-    private const float JumpSpinDuration = 0.2f;
+    private const float JumpSpinDuration = 0.7f;
 
     [MenuItem("Tools/Contra/Setup Player Animation")]
     public static void Run()
@@ -120,6 +125,25 @@ public static class PlayerAnimationSetup
             Debug.Log(
                 "ยังไม่มีโฟลเดอร์ \"" + FolderIdle +
                 "\" ใช้เฟรมแรกของท่าวิ่งไปก่อน"
+            );
+        }
+
+        if (!result.ContainsKey(FolderCrouch) &&
+            result.ContainsKey(FolderCrouchFire))
+        {
+            List<Sprite> crouchSprites = LoadSpritesSorted(
+                SpriteRoot + "/" + FolderCrouchFire
+            );
+
+            result[FolderCrouch] = WriteClip(
+                FolderCrouch,
+                new List<Sprite> { crouchSprites[0] },
+                false
+            );
+
+            Debug.Log(
+                "ไม่มีโฟลเดอร์ \"" + FolderCrouch +
+                "\" ใช้เฟรมแรกของท่าคลานยิงไปก่อน"
             );
         }
 
@@ -304,6 +328,9 @@ public static class PlayerAnimationSetup
         EnsureParameter(
             controller, "AimY", AnimatorControllerParameterType.Float);
 
+        EnsureParameter(
+            controller, "IsCrouching", AnimatorControllerParameterType.Bool);
+
         AnimatorStateMachine machine =
             controller.layers[0].stateMachine;
 
@@ -327,6 +354,15 @@ public static class PlayerAnimationSetup
         AnimatorState aimDown = AddState(
             machine, clips, FolderAimDown, new Vector3(280, 350, 0));
 
+        AnimatorState aimUpStraight = AddState(
+            machine, clips, FolderAimUpStraight, new Vector3(280, 420, 0));
+
+        AnimatorState crouchFire = AddState(
+            machine, clips, FolderCrouchFire, new Vector3(280, 490, 0));
+
+        AnimatorState crouch = AddState(
+            machine, clips, FolderCrouch, new Vector3(280, 560, 0));
+
         if (idle != null)
         {
             machine.defaultState = idle;
@@ -340,17 +376,43 @@ public static class PlayerAnimationSetup
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsGrounded");
         });
 
-        // 2. อยู่บนพื้น + กำลังยิง -> เลือกท่าตามมุมเล็ง
+        // 2. หมอบอยู่ -> ท่าคลาน ไม่สนมุมเล็ง เพราะคลานยิงได้แค่แนวนอน
+        Link(machine, crouchFire, t =>
+        {
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsCrouching");
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
+        });
+
+        Link(machine, crouch, t =>
+        {
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsCrouching");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsFiring");
+        });
+
+        // 3. ยืนยิง -> เลือกท่าตามมุมเล็ง ตรงขึ้นต้องมาก่อนเฉียงขึ้น
+        Link(machine, aimUpStraight, t =>
+        {
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
+            t.AddCondition(AnimatorConditionMode.Greater, 0.9f, "AimY");
+        });
+
         Link(machine, aimUp, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Greater, 0.5f, "AimY");
+            t.AddCondition(AnimatorConditionMode.Less, 0.9f, "AimY");
         });
 
         Link(machine, aimDown, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Less, -0.5f, "AimY");
         });
@@ -358,15 +420,17 @@ public static class PlayerAnimationSetup
         Link(machine, runFire, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Less, 0.5f, "AimY");
             t.AddCondition(AnimatorConditionMode.Greater, -0.5f, "AimY");
         });
 
-        // 3. อยู่บนพื้น ไม่ได้ยิง -> วิ่งหรือยืนเฉยๆ
+        // 4. อยู่บนพื้น ไม่ได้ยิง -> วิ่งหรือยืนเฉยๆ
         Link(machine, run, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
         });
@@ -374,6 +438,7 @@ public static class PlayerAnimationSetup
         Link(machine, idle, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Less, 0.1f, "Speed");
         });
@@ -383,7 +448,9 @@ public static class PlayerAnimationSetup
         List<string> unused = clips.Keys
             .Where(k =>
                 k != FolderIdle && k != FolderRun && k != FolderJump &&
-                k != FolderRunFire && k != FolderAimUp && k != FolderAimDown)
+                k != FolderRunFire && k != FolderAimUp && k != FolderAimDown &&
+                k != FolderAimUpStraight && k != FolderCrouchFire &&
+                k != FolderCrouch)
             .ToList();
 
         if (unused.Count > 0)

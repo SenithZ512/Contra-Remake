@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.9, y: 0.9, z: 0.9}
+  m_LocalScale: {x: 1.05, y: 0.6, z: 0.6}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -165,6 +165,12 @@ MonoBehaviour:
   maxHealth: 1
   deathEffectPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
   deathEffectOffset: {x: 0, y: 0}
+  knockbackOnDeath: 0
+  knockbackForce: 5
+  knockbackUpForce: 7
+  knockbackGravity: 4
+  knockbackSpin: 420
+  knockbackDuration: 0.45
 --- !u!114 &500006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -180,9 +186,11 @@ MonoBehaviour:
   weaponType: 1
   randomWeapon: 0
   weaponPickupPrefab: {fileID: 510000, guid: 156dc59fca9a4b8795b59ebd00061034, type: 3}
+  dropRapidFire: 0
+  rapidFireChance: 0
   dropOffset: {x: 0, y: 0}
-  moveSpeed: 3
-  flyDirection: 1
-  bobAmplitude: 3
-  bobSpeed: 2
+  moveSpeed: 4.5
+  flyDirection: 3
+  bobAmplitude: 1.5
+  bobSpeed: 5
   lifetime: 20

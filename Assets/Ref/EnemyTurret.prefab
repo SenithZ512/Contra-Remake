@@ -164,11 +164,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31e22986be1a4db48fe88394d39c4440, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   maxHealth: 5
   deathEffectPrefab: {fileID: 300001, guid: a226318c08fe4bc097aabe24a6ca656d, type: 3}
   deathEffectOffset: {x: 0, y: 0}
+  knockbackOnDeath: 0
+  knockbackForce: 5
+  knockbackUpForce: 7
+  knockbackGravity: 4
+  knockbackSpin: 420
+  knockbackDuration: 0.45
 --- !u!114 &600006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -179,8 +185,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9de3a2c8c2bc4a9cb66168a8d6f7f064, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   damage: 1
   playerTag: Player
 --- !u!114 &600007
@@ -193,8 +199,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 276cd51b834c496c99fc3e98edb68c17, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   enemyBulletPrefab: {fileID: 2753961526921921699, guid: 4832dc64b04140eca466c2e7cdef2cab, type: 3}
   fireRate: 2.8
   firstShotDelay: 0.5
@@ -202,11 +208,39 @@ MonoBehaviour:
   burstInterval: 0.15
   barrel: {fileID: 600011}
   barrelLength: 0.6
-  detectionRange: 14
-  aimHeightOffset: 0.45
+  detectionRange: 6.8
+  aimHeightOffset: 0.8
   facingDirection: {x: -1, y: 0}
-  maxAimAngle: 80
+  maxAimAngle: 180
+  useEightDirections: 1
   playerTag: Player
+--- !u!114 &600008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 600000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc8f7f1c22e54fdd892b3551397188fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  margin: 4
+  despawnWhenFalling: 0
+  minY: -20
+--- !u!114 &500010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 600000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &600010
 GameObject:
   m_ObjectHideFlags: 0
@@ -291,30 +325,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &600008
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 600000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc8f7f1c22e54fdd892b3551397188fc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  margin: 4
-  despawnWhenFalling: 0
-  minY: -20
---- !u!114 &500010
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 600000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 42c7e4f7e1bd460487ca0ceac690afff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

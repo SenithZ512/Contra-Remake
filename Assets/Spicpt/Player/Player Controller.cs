@@ -33,6 +33,12 @@ public class PlayerController : MonoBehaviour
     [Header("Screen Lock (Invisible Wall)")]
     [SerializeField] private CameraFollow cameraFollow;
 
+    /// <summary>
+    /// ปิดทางขวาตลอดเวลา ไม่ใช่เฉพาะตอนล็อกฉากบอส
+    /// ด่านปีนขึ้นแนวตั้งต้องเปิด ไม่งั้นเดินหลุดออกข้างจอ
+    /// </summary>
+    [SerializeField] private bool clampRightAlways;
+
     [Header("Animation")]
     [SerializeField] private Animator animator;
 
@@ -94,6 +100,20 @@ public class PlayerController : MonoBehaviour
             animator = GetComponent<Animator>();
         }
 
+        // Player ที่มาจาก prefab จะอ้างถึง CameraFollow ในฉากไม่ได้
+        // ต้องหาเองตอนรัน ไม่งั้นกำแพงล่องหนไม่ทำงานทั้งด่าน
+        if (cameraFollow == null)
+        {
+            cameraFollow = Object.FindObjectOfType<CameraFollow>();
+        }
+
+        if (cameraFollow == null)
+        {
+            Debug.LogWarning(
+                "PlayerController: หา CameraFollow ในฉากไม่เจอ กำแพงล่องหนจะไม่ทำงาน"
+            );
+        }
+
         if (capsuleCollider != null)
         {
             capsuleCollider.size = new Vector2(
@@ -115,13 +135,16 @@ public class PlayerController : MonoBehaviour
         HandleCrouch();
         HandleJumpOrDropThrough();
         HandleFlip();
-        ClampToCameraBoundary();
         UpdateAnimator();
     }
 
     private void FixedUpdate()
     {
         HandleMovement();
+
+        // ต้องหลัง HandleMovement และอยู่ใน FixedUpdate
+        // ถ้าไปเซ็ต rb.position ใน Update จะโดนฟิสิกส์เขียนทับในสเต็ปถัดไป
+        ClampToCameraBoundary();
     }
 
     private void ReadInput()
@@ -276,13 +299,38 @@ public class PlayerController : MonoBehaviour
         if (cameraFollow == null || rb == null)
             return;
 
-        float leftBoundary = cameraFollow.LeftBoundaryX;
+        // เผื่อครึ่งตัวไว้ ไม่งั้นลำตัวซีกซ้ายจะโผล่พ้นขอบจอ
+        // ใช้ bounds เพราะย่อขยายตัวละครแล้วค่าปรับตามเอง
+        float halfWidth = capsuleCollider != null
+            ? capsuleCollider.bounds.extents.x
+            : 0f;
+
+        float leftBoundary = cameraFollow.LeftBoundaryX + halfWidth;
 
         if (rb.position.x < leftBoundary)
         {
             rb.position = new Vector2(leftBoundary, rb.position.y);
 
             if (rb.velocity.x < 0f)
+            {
+                rb.velocity = new Vector2(0f, rb.velocity.y);
+            }
+
+            return;
+        }
+
+        // ด่านแนวนอนปิดทางขวาเฉพาะตอนล็อกฉากบอส (จอหยุดเลื่อนแล้ว)
+        // ด่านแนวตั้งต้องปิดตลอด เพราะจอไม่เลื่อนตามแกน X อยู่แล้ว
+        if (!clampRightAlways && !cameraFollow.IsBossLocked)
+            return;
+
+        float rightBoundary = cameraFollow.RightBoundaryX - halfWidth;
+
+        if (rb.position.x > rightBoundary)
+        {
+            rb.position = new Vector2(rightBoundary, rb.position.y);
+
+            if (rb.velocity.x > 0f)
             {
                 rb.velocity = new Vector2(0f, rb.velocity.y);
             }
@@ -311,6 +359,7 @@ public class PlayerController : MonoBehaviour
 
         animator.SetFloat("Speed", Mathf.Abs(moveInput));
         animator.SetBool("IsGrounded", isGrounded);
+        animator.SetBool("IsCrouching", isCrouching);
     }
 
     private void HandleFlip()
