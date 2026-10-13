@@ -47,6 +47,12 @@ public class PlayerCombat : MonoBehaviour
         WeaponType.MachineGun
     };
 
+    /// <summary>
+    /// กดลูกศรขึ้น/เฉียงแล้วเข้าท่าเล็งเลย ไม่ต้องกดปุ่มยิง
+    /// แบบต้นฉบับที่เงยปืนขึ้นได้โดยไม่ต้องยิงออกมา
+    /// </summary>
+    [SerializeField] private bool poseOnAimInput = true;
+
     /// <summary>ค้างท่ายิงไว้อีกนิดหลังปล่อยปุ่ม ไม่งั้นท่าจะกระพริบ</summary>
     [SerializeField] private float firePoseHold = 0.2f;
 
@@ -124,9 +130,14 @@ public class PlayerCombat : MonoBehaviour
     {
         bool fireHeld = Input.GetKey(fireKey);
 
+        // กดลูกศรแนวตั้งค้างไว้ก็เข้าท่าเล็งแล้ว ยังไม่ต้องยิง
+        // กดลงเฉยๆ ไม่นับ เพราะนั่นคือคลาน ซึ่งมีท่าของตัวเองอยู่แล้ว
+        bool aiming = poseOnAimInput &&
+            Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.5f;
+
         // ท่าทางยึดตามการ "กดค้าง" เสมอ กดค้างเล็งอยู่ก็ยังเป็นท่ายิง
         // ถ้าผูกท่ากับจังหวะยิงจริง ปืนกดทีละนัดจะเห็นท่ากระพริบไปมา
-        if (fireHeld)
+        if (fireHeld || aiming)
         {
             aimY = GetShootDirection().y;
             firePoseUntil = Time.time + firePoseHold;
