@@ -29,6 +29,7 @@ public static class PlayerAnimationSetup
     private const string FolderAimDown = "Running shot, angled downwards_";
     private const string FolderAimUpStraight = "Shoot straight up";
     private const string FolderCrouchFire = "Crawl-firing";
+    private const string FolderStandFire = "Standing shot";
 
     /// <summary>ไม่มีโฟลเดอร์ท่าหมอบเฉยๆ ใช้เฟรมแรกของท่าคลานยิงแทน</summary>
     private const string FolderCrouch = "PlayerCrouch";
@@ -109,23 +110,31 @@ public static class PlayerAnimationSetup
         }
 
         // ไม่มีโฟลเดอร์ยืนเฉยๆ ก็หยิบเฟรมแรกของท่าวิ่งมาใช้แทน
-        if (!result.ContainsKey(FolderIdle) &&
-            result.ContainsKey(FolderRun))
+        if (!result.ContainsKey(FolderIdle))
         {
-            List<Sprite> runSprites = LoadSpritesSorted(
-                SpriteRoot + "/" + FolderRun
-            );
+            // ท่ายืนเฉยๆ เอาจากท่ายืนยิงก่อน เพราะเป็นท่ายืนจริงๆ
+            // ถ้าไม่มีค่อยถอยไปใช้เฟรมแรกของท่าวิ่ง ซึ่งเป็นท่าก้าวขากลางคัน
+            string source = result.ContainsKey(FolderStandFire)
+                ? FolderStandFire
+                : FolderRun;
 
-            result[FolderIdle] = WriteClip(
-                FolderIdle,
-                new List<Sprite> { runSprites[0] },
-                false
-            );
+            if (result.ContainsKey(source))
+            {
+                List<Sprite> sourceSprites = LoadSpritesSorted(
+                    SpriteRoot + "/" + source
+                );
 
-            Debug.Log(
-                "ยังไม่มีโฟลเดอร์ \"" + FolderIdle +
-                "\" ใช้เฟรมแรกของท่าวิ่งไปก่อน"
-            );
+                result[FolderIdle] = WriteClip(
+                    FolderIdle,
+                    new List<Sprite> { sourceSprites[0] },
+                    false
+                );
+
+                Debug.Log(
+                    "ยังไม่มีโฟลเดอร์ \"" + FolderIdle +
+                    "\" ใช้เฟรมแรกของ \"" + source + "\" แทน"
+                );
+            }
         }
 
         if (!result.ContainsKey(FolderCrouch) &&
@@ -363,6 +372,9 @@ public static class PlayerAnimationSetup
         AnimatorState crouch = AddState(
             machine, clips, FolderCrouch, new Vector3(280, 560, 0));
 
+        AnimatorState standFire = AddState(
+            machine, clips, FolderStandFire, new Vector3(280, 630, 0));
+
         if (idle != null)
         {
             machine.defaultState = idle;
@@ -391,7 +403,17 @@ public static class PlayerAnimationSetup
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsFiring");
         });
 
-        // 3. ยืนยิง -> เลือกท่าตามมุมเล็ง ตรงขึ้นต้องมาก่อนเฉียงขึ้น
+        // 3. ยืนนิ่งแล้วยิง -> ท่ายืนยิงเสมอ ไม่ว่าเล็งทางไหน
+        // ต้องมาก่อนท่าเล็งทั้งหมด ไม่งั้นจะไปติดท่าวิ่งที่ขาขยับทั้งที่ตัวไม่ไปไหน
+        Link(machine, standFire, t =>
+        {
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
+            t.AddCondition(AnimatorConditionMode.Less, 0.1f, "Speed");
+        });
+
+        // 4. วิ่งไปยิงไป -> เลือกท่าตามมุมเล็ง ตรงขึ้นต้องมาก่อนเฉียงขึ้น
         Link(machine, aimUpStraight, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
@@ -424,9 +446,11 @@ public static class PlayerAnimationSetup
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Less, 0.5f, "AimY");
             t.AddCondition(AnimatorConditionMode.Greater, -0.5f, "AimY");
+            t.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
         });
 
-        // 4. อยู่บนพื้น ไม่ได้ยิง -> วิ่งหรือยืนเฉยๆ
+
+        // 5. อยู่บนพื้น ไม่ได้ยิง -> วิ่งหรือยืนเฉยๆ
         Link(machine, run, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
@@ -450,7 +474,7 @@ public static class PlayerAnimationSetup
                 k != FolderIdle && k != FolderRun && k != FolderJump &&
                 k != FolderRunFire && k != FolderAimUp && k != FolderAimDown &&
                 k != FolderAimUpStraight && k != FolderCrouchFire &&
-                k != FolderCrouch)
+                k != FolderCrouch && k != FolderStandFire)
             .ToList();
 
         if (unused.Count > 0)
