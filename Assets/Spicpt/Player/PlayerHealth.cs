@@ -11,6 +11,32 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private float invulnerableDuration = 2f;
     [SerializeField] private float blinkInterval = 0.1f;
 
+    [Header("Barrier (ไอเทม B)")]
+    /// <summary>
+    /// ต้นฉบับตั้งตัวนับไว้ที่ $80 แล้วลดทีละหนึ่งทุก 8 เฟรม
+    /// 128 x 8 = 1024 เฟรม หารด้วย 60 ได้ 17.07 วินาที
+    /// </summary>
+    [SerializeField] private float barrierDuration = 17.07f;
+
+    /// <summary>
+    /// ด่าน Hangar ด่านเดียวที่ได้นานกว่า ต้นฉบับตั้ง $90 = 19.2 วินาที
+    /// ใส่ชื่อฉากที่อยากให้ใช้ค่านี้ เว้นว่างไว้ก็ใช้ค่าปกติทุกด่าน
+    /// </summary>
+    [SerializeField] private string longBarrierScene = "Hangar";
+
+    [SerializeField] private float longBarrierDuration = 19.2f;
+
+    /// <summary>สีที่วนตอนมีเกราะ ต้นฉบับสลับพาเลตต์ให้ตัวละครเปลี่ยนสีรัว</summary>
+    [SerializeField] private Color[] barrierColors =
+    {
+        new Color(1f, 1f, 1f),
+        new Color(0.6f, 0.9f, 1f),
+        new Color(1f, 0.8f, 0.4f),
+        new Color(0.8f, 0.6f, 1f)
+    };
+
+    [SerializeField] private float barrierColorRate = 12f;
+
     [Header("Respawn")]
     [SerializeField] private float respawnDelay = 1f;
     [SerializeField] private float respawnHeightOffset = 5f;
@@ -60,6 +86,39 @@ public class PlayerHealth : MonoBehaviour
     public bool IsDead => isDead;
     public int CurrentLives => currentLives;
 
+    private float barrierUntil;
+
+    /// <summary>
+    /// กำลังมีเกราะอยู่ไหม
+    /// ต้นฉบับกันได้ทุกอย่างยกเว้นตกเหว และศัตรูที่มาโดนตัวจะตายทันที
+    /// </summary>
+    public bool HasBarrier => Time.time < barrierUntil;
+
+    /// <summary>ไอเทม B เรียกตอนถูกเก็บ ใส่ 0 เพื่อใช้ระยะเวลามาตรฐานของด่าน</summary>
+    public void ActivateBarrier(float duration)
+    {
+        if (duration <= 0f)
+        {
+            duration = GetBarrierDuration();
+        }
+
+        // เก็บซ้ำไม่ต่อเวลา แต่เริ่มนับใหม่ เหมือนต้นฉบับที่เขียนทับตัวนับ
+        barrierUntil = Time.time + duration;
+    }
+
+    private float GetBarrierDuration()
+    {
+        if (string.IsNullOrEmpty(longBarrierScene))
+            return barrierDuration;
+
+        string scene = UnityEngine.SceneManagement.SceneManager
+            .GetActiveScene().name;
+
+        return scene == longBarrierScene
+            ? longBarrierDuration
+            : barrierDuration;
+    }
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -82,6 +141,33 @@ public class PlayerHealth : MonoBehaviour
     private void Update()
     {
         CheckFallDeath();
+        UpdateBarrierLook();
+    }
+
+    /// <summary>วนสีตัวละครตอนมีเกราะ ให้รู้ว่ายังอมตะอยู่</summary>
+    private void UpdateBarrierLook()
+    {
+        if (spriteRenderer == null)
+            return;
+
+        if (!HasBarrier)
+        {
+            // ช่วงกะพริบหลังเกิดใหม่จัดการสีเองอยู่แล้ว อย่าไปทับ
+            if (!isInvulnerable)
+            {
+                spriteRenderer.color = Color.white;
+            }
+
+            return;
+        }
+
+        if (barrierColors == null || barrierColors.Length == 0)
+            return;
+
+        int index = Mathf.FloorToInt(Time.time * barrierColorRate) %
+            barrierColors.Length;
+
+        spriteRenderer.color = barrierColors[index];
     }
 
     /// <summary>ตกต่ำกว่าขอบล่างจอ = ตายทันที แบบ Contra ต้นฉบับ</summary>
@@ -132,8 +218,8 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        // อมตะอยู่ (เพิ่งเกิดใหม่) หรือตายไปแล้ว ไม่ต้องรับดาเมจซ้ำ
-        if (isDead || isInvulnerable)
+        // อมตะอยู่ (เพิ่งเกิดใหม่ หรือมีเกราะ) หรือตายไปแล้ว ไม่ต้องรับดาเมจซ้ำ
+        if (isDead || isInvulnerable || HasBarrier)
             return;
 
         currentHealth -= damage;

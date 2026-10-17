@@ -164,6 +164,6 @@ MonoBehaviour:
   speed: 4
   lifetime: 7.5
   damage: 1
-  orbitRadius: 0.5
-  orbitSpeed: 530
+  orbitRadius: 1
+  orbitSpeed: 720
   passThroughGround: 1

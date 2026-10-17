@@ -6,6 +6,13 @@ public class EnemyHealth : MonoBehaviour
     [Header("Health")]
     [SerializeField] private int maxHealth = 1;
 
+    [Header("Falcon (ไอเทมล้างจอ)")]
+    /// <summary>
+    /// ไอเทมนกเหยี่ยวข้ามตัวนี้ไป
+    /// ต้นฉบับข้าม Pill Box Sensor กับแคปซูลที่บินผ่านจอ
+    /// </summary>
+    [SerializeField] private bool ignoreFalcon;
+
     [Header("Death")]
     [SerializeField] private GameObject deathEffectPrefab;
     [SerializeField] private Vector2 deathEffectOffset = new Vector2(0f, 0.85f);
@@ -34,6 +41,7 @@ public class EnemyHealth : MonoBehaviour
 
     public bool IsDead => isDead;
     public bool IsInvulnerable => isInvulnerable;
+    public bool IgnoreFalcon => ignoreFalcon;
 
     /// <summary>ใช้ตอนป้อมปืนปิดฝา หรือช่วงที่ไม่ควรรับดาเมจ</summary>
     public void SetInvulnerable(bool value)

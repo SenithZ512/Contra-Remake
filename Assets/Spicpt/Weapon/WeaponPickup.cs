@@ -8,12 +8,28 @@ public class WeaponPickup : MonoBehaviour
         Weapon,
 
         /// <summary>ไอเทม R เพิ่มความเร็วยิงของอาวุธที่ถืออยู่</summary>
-        RapidFire
+        RapidFire,
+
+        /// <summary>ไอเทม B เกราะอมตะชั่วคราว ไม่เปลี่ยนอาวุธที่ถืออยู่</summary>
+        Barrier,
+
+        /// <summary>ไอเทมนกเหยี่ยว ล้างศัตรูทั้งจอทันทีที่แตะ</summary>
+        Falcon
     }
 
     [Header("Weapon")]
     [SerializeField] private PickupKind kind = PickupKind.Weapon;
     [SerializeField] private WeaponType weaponType = WeaponType.SpreadGun;
+
+    [Header("Barrier / Falcon")]
+    /// <summary>ระยะเวลาเกราะ ใส่ 0 ให้ PlayerHealth เลือกตามด่านเอง</summary>
+    [SerializeField] private float barrierDuration;
+
+    /// <summary>ดาเมจที่นกเหยี่ยวยิงใส่ทุกตัว ต้นฉบับเท่ากับโดนหนึ่งครั้ง</summary>
+    [SerializeField] private int falconDamage = 1;
+
+    /// <summary>เอฟเฟกต์จอวาบตอนใช้นกเหยี่ยว ต้นฉบับวาบอยู่ 32 เฟรม</summary>
+    [SerializeField] private GameObject falconFlashPrefab;
 
     [Header("Falling")]
     [SerializeField] private bool fallWithGravity = true;
@@ -171,16 +187,37 @@ public class WeaponPickup : MonoBehaviour
         WeaponSystem weaponSystem =
             other.GetComponentInParent<WeaponSystem>();
 
-        if (weaponSystem == null)
-            return;
+        switch (kind)
+        {
+            case PickupKind.RapidFire:
+                if (weaponSystem != null)
+                {
+                    weaponSystem.EnableRapidFire();
+                }
+                break;
 
-        if (kind == PickupKind.RapidFire)
-        {
-            weaponSystem.EnableRapidFire();
-        }
-        else
-        {
-            weaponSystem.SetWeapon(weaponType);
+            case PickupKind.Barrier:
+                // เกราะไม่แตะอาวุธที่ถืออยู่ ต่างจากไอเทมอื่นที่เขียนทับ
+                PlayerHealth health =
+                    other.GetComponentInParent<PlayerHealth>();
+
+                if (health != null)
+                {
+                    health.ActivateBarrier(barrierDuration);
+                }
+                break;
+
+            case PickupKind.Falcon:
+                // ใช้ทันทีที่แตะ เก็บไว้ใช้ทีหลังไม่ได้
+                FalconStrike.Detonate(falconDamage, falconFlashPrefab);
+                break;
+
+            default:
+                if (weaponSystem == null)
+                    return;
+
+                weaponSystem.SetWeapon(weaponType);
+                break;
         }
 
         Destroy(gameObject);
@@ -191,10 +228,25 @@ public class WeaponPickup : MonoBehaviour
         if (spriteRenderer == null)
             return;
 
-        // ไอเทมยิงรัวใช้สีเหลืองสดแยกจากอาวุธ จะได้ไม่สับสนกับ Spread/FireBall
-        spriteRenderer.color = kind == PickupKind.RapidFire
-            ? new Color(1f, 0.95f, 0.2f)
-            : GetWeaponColor(weaponType);
+        // ไอเทมพิเศษใช้สีเฉพาะตัว จะได้ไม่สับสนกับอาวุธ
+        switch (kind)
+        {
+            case PickupKind.RapidFire:
+                spriteRenderer.color = new Color(1f, 0.95f, 0.2f);
+                return;
+
+            case PickupKind.Barrier:
+                spriteRenderer.color = new Color(0.55f, 0.9f, 1f);
+                return;
+
+            case PickupKind.Falcon:
+                spriteRenderer.color = new Color(1f, 0.45f, 0.45f);
+                return;
+
+            default:
+                spriteRenderer.color = GetWeaponColor(weaponType);
+                return;
+        }
     }
 
     private static Color GetWeaponColor(WeaponType type)

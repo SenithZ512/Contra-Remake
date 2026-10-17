@@ -73610,6 +73610,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3675565667532492740, guid: 7446b839aea1ccb4eb9536f55347bf64, type: 3}
+      propertyPath: currentWeapon
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 5237830039608916797, guid: 7446b839aea1ccb4eb9536f55347bf64, type: 3}
       propertyPath: cameraFollow
       value: 

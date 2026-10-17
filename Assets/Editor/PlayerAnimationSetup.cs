@@ -34,6 +34,18 @@ public static class PlayerAnimationSetup
     /// <summary>ไม่มีโฟลเดอร์ท่าหมอบเฉยๆ ใช้เฟรมแรกของท่าคลานยิงแทน</summary>
     private const string FolderCrouch = "PlayerCrouch";
 
+    /// <summary>
+    /// ท่ายืนนิ่งยิงขึ้นตรงๆ ไม่มีโฟลเดอร์ของตัวเอง
+    ///
+    /// รูปใน "Shoot straight up" เป็นท่าวิ่งทุกเฟรม ขาก้าวหมด
+    /// ถ้าเอาไปเล่นตอนยืนนิ่งขาจะวิ่งอยู่กับที่
+    /// เลยหยิบมาเฟรมเดียวแล้วตรึงไว้ ขาจะได้หยุดนิ่ง
+    /// </summary>
+    private const string ClipAimUpStand = "Shoot straight up (stand)";
+
+    /// <summary>เอาเฟรมไหนมาตรึง นับจาก 1 เลือกเฟรมที่เท้าแตะพื้นทั้งสองข้าง</summary>
+    private const int AimUpStandFrame = 1;
+
     private const int CycleFrameRate = 16;
 
     // ลูกของ Player: Visual (จุดหมุนอยู่ระดับเอว) -> Sprite (ตัว SpriteRenderer)
@@ -135,6 +147,29 @@ public static class PlayerAnimationSetup
                     "\" ใช้เฟรมแรกของ \"" + source + "\" แทน"
                 );
             }
+        }
+
+        // ท่ายืนยิงขึ้น ตัดมาจากท่าวิ่งยิงขึ้นเฟรมเดียว
+        if (result.ContainsKey(FolderAimUpStraight))
+        {
+            List<Sprite> upSprites = LoadSpritesSorted(
+                SpriteRoot + "/" + FolderAimUpStraight
+            );
+
+            int index = Mathf.Clamp(
+                AimUpStandFrame - 1, 0, upSprites.Count - 1
+            );
+
+            result[ClipAimUpStand] = WriteClip(
+                ClipAimUpStand,
+                new List<Sprite> { upSprites[index] },
+                false
+            );
+
+            Debug.Log(
+                "ทำท่ายืนยิงขึ้นจากเฟรมที่ " + (index + 1) +
+                " ของ \"" + FolderAimUpStraight + "\""
+            );
         }
 
         if (!result.ContainsKey(FolderCrouch) &&
@@ -375,6 +410,9 @@ public static class PlayerAnimationSetup
         AnimatorState standFire = AddState(
             machine, clips, FolderStandFire, new Vector3(280, 630, 0));
 
+        AnimatorState aimUpStand = AddState(
+            machine, clips, ClipAimUpStand, new Vector3(280, 700, 0));
+
         if (idle != null)
         {
             machine.defaultState = idle;
@@ -403,23 +441,26 @@ public static class PlayerAnimationSetup
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsFiring");
         });
 
-        // 3. ยืนนิ่งแล้วยิง -> ท่ายืนยิงเสมอ ไม่ว่าเล็งทางไหน
-        // ต้องมาก่อนท่าเล็งทั้งหมด ไม่งั้นจะไปติดท่าวิ่งที่ขาขยับทั้งที่ตัวไม่ไปไหน
-        Link(machine, standFire, t =>
+        // 3. ยิงโดยเล็งเฉียงหรือตรงขึ้น -> ใช้ท่าตามมุมเล็ง ไม่สนว่ายืนหรือวิ่ง
+        // กลุ่มนี้ต้องมาก่อนท่ายืนยิง ไม่งั้นยืนนิ่งกดยิงขึ้นจะถูกท่ายืนยิงคว้าไปก่อน
+        // เพราะท่ายืนยิงไม่ได้ดูมุมเล็ง ท่า "ยิงขึ้นตรงๆ" เลยไม่ได้เล่นเลย
+        // ยืนนิ่งยิงขึ้น ใช้เฟรมตรึง ไม่งั้นขาจะวิ่งอยู่กับที่
+        Link(machine, aimUpStand, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
+            t.AddCondition(AnimatorConditionMode.Greater, 0.9f, "AimY");
             t.AddCondition(AnimatorConditionMode.Less, 0.1f, "Speed");
         });
 
-        // 4. วิ่งไปยิงไป -> เลือกท่าตามมุมเล็ง ตรงขึ้นต้องมาก่อนเฉียงขึ้น
         Link(machine, aimUpStraight, t =>
         {
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Greater, 0.9f, "AimY");
+            t.AddCondition(AnimatorConditionMode.Greater, 0.1f, "Speed");
         });
 
         Link(machine, aimUp, t =>
@@ -437,6 +478,19 @@ public static class PlayerAnimationSetup
             t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
             t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
             t.AddCondition(AnimatorConditionMode.Less, -0.5f, "AimY");
+        });
+
+        // 4. เล็งแนวนอน -> แยกตามว่าขากำลังขยับหรือไม่
+        // ใส่ขอบ AimY ไว้ด้วยทั้งที่ลำดับจัดให้ถูกแล้ว
+        // วันหลังสลับลำดับไปมาก็ยังไม่พัง เพราะเงื่อนไขไม่ทับกันเองเลย
+        Link(machine, standFire, t =>
+        {
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsGrounded");
+            t.AddCondition(AnimatorConditionMode.IfNot, 0f, "IsCrouching");
+            t.AddCondition(AnimatorConditionMode.If, 0f, "IsFiring");
+            t.AddCondition(AnimatorConditionMode.Less, 0.5f, "AimY");
+            t.AddCondition(AnimatorConditionMode.Greater, -0.5f, "AimY");
+            t.AddCondition(AnimatorConditionMode.Less, 0.1f, "Speed");
         });
 
         Link(machine, runFire, t =>
@@ -474,7 +528,8 @@ public static class PlayerAnimationSetup
                 k != FolderIdle && k != FolderRun && k != FolderJump &&
                 k != FolderRunFire && k != FolderAimUp && k != FolderAimDown &&
                 k != FolderAimUpStraight && k != FolderCrouchFire &&
-                k != FolderCrouch && k != FolderStandFire)
+                k != FolderCrouch && k != FolderStandFire &&
+                k != ClipAimUpStand)
             .ToList();
 
         if (unused.Count > 0)
