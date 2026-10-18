@@ -166,7 +166,16 @@ public class WeaponPickup : MonoBehaviour
     /// </summary>
     public void SetRapidFire()
     {
-        kind = PickupKind.RapidFire;
+        SetKind(PickupKind.RapidFire);
+    }
+
+    /// <summary>
+    /// สั่งว่าไอเทมชิ้นนี้เป็นอะไร ใช้ prefab เดิมได้ทุกแบบ
+    /// Barrier กับ Falcon ไม่ต้องตั้ง weaponType เพราะไม่ได้เปลี่ยนปืน
+    /// </summary>
+    public void SetKind(PickupKind value)
+    {
+        kind = value;
 
         ApplyWeaponColor();
     }

@@ -53,8 +53,30 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     [SerializeField] private bool respawnAtCamera = true;
 
-    /// <summary>โผล่เหนือขอบบนกล้องเท่าไหร่ แล้วร่วงลงมา</summary>
+    /// <summary>
+    /// ยอมให้เกิดเหนือขอบจอแล้วร่วงลงมาไหม **ปิดไว้เป็นค่าเริ่มต้น**
+    ///
+    /// ต้นฉบับให้ตัวละครโผล่ "ในจอ" เสมอ เห็นตัวเองตั้งแต่วินาทีแรก
+    /// ถ้าเกิดเหนือขอบจอ ช่วงที่กำลังร่วงจะมองไม่เห็นตัวเลย
+    /// บังคับก็ไม่ได้เพราะไม่รู้ว่าตัวอยู่ตรงไหน
+    ///
+    /// ตอนสู้บอสยิ่งหนัก กล้องล็อกอยู่กับที่ ร่วงลงมาก็เจอกระสุนบอสพอดี
+    /// ทั้งที่ยังไม่ทันเห็นจอด้วยซ้ำ
+    ///
+    /// เปิดได้ถ้าอยากได้ภาพร่วงลงมาจากฟ้าในด่านโล่งๆ ที่ไม่มีบอส
+    /// </summary>
+    [SerializeField] private bool respawnAboveScreen = false;
+
+    /// <summary>โผล่เหนือขอบบนกล้องเท่าไหร่ ใช้เฉพาะตอนเปิด Respawn Above Screen</summary>
     [SerializeField] private float respawnDropHeight = 1.5f;
+
+    /// <summary>
+    /// ลึกจากขอบบนลงมาเท่าไหร่ ใช้กับด่านที่กล้องไต่ตามผู้เล่น
+    ///
+    /// ด่านแบบนั้นห้ามเกิดเหนือขอบจอเด็ดขาด เพราะกล้องจะไต่ตามขึ้นไป
+    /// แล้วรอบหน้าก็เกิดสูงกว่าเดิมอีก ไต่หนีขึ้นไปเรื่อยๆ ไม่มีวันจบ
+    /// </summary>
+    [SerializeField] private float respawnInsideMargin = 1f;
 
     /// <summary>
     /// เกิดใกล้จุดที่ตาย แทนที่จะเกิดริมซ้ายของจอเสมอ
@@ -68,6 +90,18 @@ public class PlayerHealth : MonoBehaviour
     /// </summary>
     [SerializeField] private Vector2 respawnDropVelocity =
         new Vector2(2.5f, 1.5f);
+
+    /// <summary>
+    /// เลเยอร์ที่ถือว่า "ตัน" ตอนหาที่เกิด
+    ///
+    /// เกิดในจอแล้วมีโอกาสไปโผล่ซ้อนกับพื้นหรือเพดานในห้องบอส
+    /// ใส่เลเยอร์พื้นไว้ ระบบจะไล่หาที่ว่างลงมาให้เอง
+    /// ว่างไว้ = ไม่ต้องหา เกิดตรงที่คำนวณได้เลย
+    /// </summary>
+    [SerializeField] private LayerMask respawnBlockers;
+
+    /// <summary>รัศมีที่ใช้เช็คว่าที่ตรงนั้นว่างพอให้ยืนไหม</summary>
+    [SerializeField] private float respawnClearRadius = 0.5f;
 
     [Header("References")]
     [SerializeField] private SpriteRenderer spriteRenderer;
@@ -196,6 +230,13 @@ public class PlayerHealth : MonoBehaviour
         spawnPosition = transform.position;
 
         mainCamera = Camera.main;
+
+        // หาเองถ้าไม่ได้ลากใส่ไว้
+        // ตัวนี้เป็นตัวตัดสินว่าจะเกิดใหม่ตรงไหน ลืมใส่แล้วอาการจะแปลกมาก
+        if (cameraFollow == null)
+        {
+            cameraFollow = Object.FindObjectOfType<CameraFollow>();
+        }
     }
 
     private void Update()
@@ -411,7 +452,17 @@ public class PlayerHealth : MonoBehaviour
         // ใส่ความเร็วแกน X ไว้ด้วย ตัวจะได้ลอยเฉียงเข้าจอ ดูมีน้ำหนัก
         if (rb != null)
         {
-            rb.velocity = respawnDropVelocity;
+            Vector2 drop = respawnDropVelocity;
+
+            // เกิดในจอแล้วห้ามดีดขึ้น เพราะอยู่ใกล้ขอบบนอยู่แล้ว
+            // ด่านที่กล้องไต่ตามจะโดนดันขึ้นไปอีก กลายเป็นไต่หนีหน้าเหมือนเดิม
+            // ห้องบอสก็จะลอยพ้นขอบจอไปชั่วครู่ ซึ่งมองไม่เห็นตัวเองอยู่ดี
+            if (MustRespawnInsideView())
+            {
+                drop.y = Mathf.Min(0f, drop.y);
+            }
+
+            rb.velocity = drop;
         }
 
         yield return StartCoroutine(InvulnerableRoutine());
@@ -449,8 +500,8 @@ public class PlayerHealth : MonoBehaviour
     }
 
     /// <summary>
-    /// โผล่เหนือขอบบนของกล้องแล้วร่วงลงมา
-    /// แกนนอนบีบให้อยู่ในจอเสมอ ตายนอกจอก็ยังเกิดในจอ
+    /// หาจุดเกิดใหม่จากกรอบที่กล้องเห็นตอนนี้
+    /// บีบให้อยู่ในจอทั้งสองแกน ตายนอกจอก็ยังเกิดในจอ
     /// </summary>
     private Vector2 GetCameraRespawnPosition()
     {
@@ -466,7 +517,59 @@ public class PlayerHealth : MonoBehaviour
             ? Mathf.Clamp(deathPosition.x, left, right)
             : left;
 
-        return new Vector2(x, center.y + halfHeight + respawnDropHeight);
+        // ค่าเริ่มต้นคือเกิด "ในจอ" เสมอ ตรงกับต้นฉบับที่เห็นตัวเองทันที
+        //
+        // สองกรณีนี้ห้ามเกิดเหนือขอบจอเด็ดขาด ต่อให้เปิดสวิตช์ไว้ก็ตาม
+        //
+        //   กล้องไต่ตาม  เกิดเหนือขอบแล้วกล้องจะไต่ตามขึ้นไปอีก
+        //                ตายรอบหน้าก็เกิดสูงกว่าเดิม วนจนลอยหนีไปเลย
+        //
+        //   ล็อกห้องบอส  ร่วงลงมาโดยมองไม่เห็นจอ เจอกระสุนบอสพอดี
+        //                หลบไม่ได้เพราะไม่รู้ว่าตัวเองอยู่ตรงไหน
+        float y = MustRespawnInsideView()
+            ? center.y + halfHeight - respawnInsideMargin
+            : center.y + halfHeight + respawnDropHeight;
+
+        return new Vector2(x, FindClearSpot(x, y, center.y - halfHeight));
+    }
+
+    /// <summary>ต้องเกิดในจอไหม ใช้ทั้งตอนหาตำแหน่งและตอนใส่ความเร็ว</summary>
+    private bool MustRespawnInsideView()
+    {
+        if (!respawnAboveScreen)
+            return true;
+
+        if (cameraFollow == null)
+            return false;
+
+        return cameraFollow.FollowsUpward || cameraFollow.IsBossLocked;
+    }
+
+    /// <summary>
+    /// ไล่หาที่ว่างลงมาจากจุดที่คำนวณได้
+    ///
+    /// เกิดในจอมีโอกาสไปโผล่ซ้อนกับเพดานหรือชานในห้องบอส
+    /// ซึ่งฟิสิกส์จะดีดตัวออกมั่วๆ หรือหล่นทะลุพื้นไปเลย
+    /// ไม่ได้ตั้ง Respawn Blockers ไว้ก็ข้ามทั้งหมด ไม่เสียแรงเช็ค
+    /// </summary>
+    private float FindClearSpot(float x, float y, float floorY)
+    {
+        if (respawnBlockers.value == 0 || respawnClearRadius <= 0f)
+            return y;
+
+        for (int step = 0; step < 24 && y > floorY; step++)
+        {
+            Collider2D hit = Physics2D.OverlapCircle(
+                new Vector2(x, y), respawnClearRadius, respawnBlockers
+            );
+
+            if (hit == null)
+                return y;
+
+            y -= respawnClearRadius;
+        }
+
+        return y;
     }
 
     private IEnumerator InvulnerableRoutine()

@@ -169,6 +169,9 @@ public class BaseStage : MonoBehaviour
         {
             Debug.Log("เคลียร์ทุกห้องแล้ว จบด่าน");
 
+            // ห้องสุดท้ายคือ Garmakilma เคลียร์ได้ = เคลียร์บอส
+            GameAudio.BossCleared();
+
             if (goToNextSceneWhenCleared)
             {
                 // จอดำอยู่แล้วจากจังหวะเปลี่ยนห้อง ต่อด้วยการโหลดฉากถัดไปได้เลย

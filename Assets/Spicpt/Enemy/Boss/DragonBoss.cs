@@ -86,6 +86,27 @@ public class DragonBoss : MonoBehaviour
     /// <summary>เร็วขึ้นเมื่อแขนหมดทั้งสองข้าง (speed code 7)</summary>
     [SerializeField] private float fireballSpeedNoArms = 7f;
 
+    [Header("Camera (โจมตีเฉพาะตอนอยู่ในจอ)")]
+    /// <summary>
+    /// หยุดทุกอย่างตอนบอสยังไม่เข้าจอ ทั้งปากและแขนทั้งสองข้าง
+    ///
+    /// **ต้นฉบับไม่ต้องเช็ค** เพราะ NES ถอดศัตรูที่อยู่นอกจอทิ้งอัตโนมัติ
+    /// ของเราวางบอสไว้ในฉากตั้งแต่แรก ถ้าไม่เช็คมันจะเริ่มนับเวลา
+    /// แล้วพ่นไฟใส่ตั้งแต่ยังไม่เห็นตัวบอสด้วยซ้ำ ซึ่งหลบไม่ได้เลย
+    ///
+    /// หน่วง 4.25 วิก่อนอ้าปากครั้งแรกก็จะเริ่มนับตอนเข้าจอ
+    /// ไม่ใช่ตอนโหลดฉาก เลยได้เวลาตั้งตัวเต็มๆ ตามที่ควรจะเป็น
+    /// </summary>
+    [SerializeField] private bool onlyAttackOnScreen = true;
+
+    /// <summary>
+    /// เผื่อขอบจอเท่าไหร่ถึงจะเริ่มโจมตี
+    ///
+    /// 0 = ต้องเห็นสไปรต์สักส่วนในจอจริงๆ ก่อน (วัดจากกรอบสไปรต์ ไม่ใช่จุดศูนย์กลาง)
+    /// ติดลบ = ต้องโผล่เข้ามาลึกกว่านั้นอีกถึงจะเริ่ม ใจดีกับผู้เล่นขึ้น
+    /// </summary>
+    [SerializeField] private float screenMargin = 0f;
+
     [Header("Arms")]
     [SerializeField] private DragonArm[] arms;
 
@@ -118,6 +139,43 @@ public class DragonBoss : MonoBehaviour
     private bool CanOpenMouth
     {
         get { return !openOnlyWhenArmless || ArmsDestroyed >= 2; }
+    }
+
+    /// <summary>แขนอ่านค่าจากตรงนี้ จะได้มีสวิตช์เดียวคุมทั้งตัวบอส</summary>
+    public bool OnlyAttackOnScreen
+    {
+        get { return onlyAttackOnScreen; }
+    }
+
+    public float ScreenMargin
+    {
+        get { return screenMargin; }
+    }
+
+    /// <summary>
+    /// กรอบนี้โผล่ในจอแล้วหรือยัง ใช้ร่วมกันระหว่างปากกับแขน
+    ///
+    /// วัดจาก "กรอบสไปรต์" ไม่ใช่จุดศูนย์กลาง เพราะบอสตัวใหญ่มาก
+    /// ถ้าวัดจุดศูนย์กลาง มันจะยังไม่โจมตีทั้งที่เห็นเต็มครึ่งจอไปแล้ว
+    /// และถ้าจุดหมุนบังเอิญอยู่นอกกรอบที่กล้องกวาดถึง บอสจะไม่ขยับเลยทั้งเกม
+    /// </summary>
+    public static bool IsInsideView(Bounds box, float margin)
+    {
+        Camera view = Camera.main;
+
+        if (view == null || !view.orthographic)
+            return true;
+
+        Vector2 center = view.transform.position;
+
+        float halfWidth =
+            view.orthographicSize * view.aspect + margin + box.extents.x;
+
+        float halfHeight =
+            view.orthographicSize + margin + box.extents.y;
+
+        return Mathf.Abs(box.center.x - center.x) <= halfWidth &&
+            Mathf.Abs(box.center.y - center.y) <= halfHeight;
     }
 
     private void Awake()
@@ -166,6 +224,11 @@ public class DragonBoss : MonoBehaviour
 
     private void Update()
     {
+        // ยังไม่เข้าจอก็ค้างอยู่เฟสเดิม ไม่นับเวลา ไม่พ่นไฟ
+        // นาฬิกาทุกตัวของบอสเริ่มเดินตอนผู้เล่นเห็นตัวมันแล้วเท่านั้น
+        if (onlyAttackOnScreen && !IsOnScreen())
+            return;
+
         timer -= Time.deltaTime;
 
         switch (phase)
@@ -196,6 +259,16 @@ public class DragonBoss : MonoBehaviour
                 }
                 break;
         }
+    }
+
+    /// <summary>ไม่มีสไปรต์ก็ใช้จุดหมุนแทน ยังดีกว่าไม่เช็คอะไรเลย</summary>
+    private bool IsOnScreen()
+    {
+        Bounds box = spriteRenderer != null
+            ? spriteRenderer.bounds
+            : new Bounds(transform.position, Vector3.zero);
+
+        return IsInsideView(box, screenMargin);
     }
 
     private void UpdateOpen()
@@ -298,6 +371,8 @@ public class DragonBoss : MonoBehaviour
 
     private void OnMouthDestroyed()
     {
+        GameAudio.BossCleared();
+
         // ต้องฝากชุดระเบิดไว้กับออบเจกต์อื่น
         // เพราะ EnemyHealth จะทำลายบอสทิ้งทันทีหลังเรียก OnDied
         ExplosionBurst.Spawn(

@@ -60,6 +60,16 @@ public class CameraFollow : MonoBehaviour
     /// <summary>ล็อกฉากบอสอยู่ไหม ตอนล็อกกล้องจะไม่ตามผู้เล่นแล้ว</summary>
     public bool IsBossLocked => bossLocked;
 
+    /// <summary>
+    /// กล้องด่านนี้ไต่ตามผู้เล่นขึ้นไปเรื่อยๆ หรือเปล่า
+    ///
+    /// สำคัญกับการเกิดใหม่ ถ้าไปเกิดเหนือขอบจอกับกล้องแบบนี้
+    /// กล้องจะไต่ตามขึ้นไปอีก ตายซ้ำก็ไต่ขึ้นอีก ไม่มีวันจบ
+    /// </summary>
+    public bool FollowsUpward =>
+        verticalMode == VerticalMode.ScrollUpOnly ||
+        verticalMode == VerticalMode.Follow;
+
     // ขอบซ้ายสุดของจอ ณ ตอนนี้ ใช้เป็น "กำแพงล่องหน" กันเดินย้อนกลับเกินขอบจอ
     // ต้องวัดจากตำแหน่งกล้องจริง ไม่ใช่ lockedX เพราะกล้องเลื่อนตามแบบ Lerp
     // ตอนวิ่งไปขวาเร็วๆ lockedX จะพุ่งนำหน้าจอไปก่อน กำแพงจะไปโผล่กลางจอ

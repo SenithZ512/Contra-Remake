@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6e7527da55411d4d859bc47f7cd8e96, type: 3}
+  m_Name: GameAudioLibrary
+  m_EditorClassIdentifier: 
+  playerNormal: {fileID: 8300000, guid: 3c59682a709b28448a7a2531557f442e, type: 3}
+  playerMachineGun: {fileID: 8300000, guid: 104888f38582d204ba9859970450b402, type: 3}
+  playerSpread: {fileID: 8300000, guid: 281aa3eb1bde75449b0d2a4d44e21417, type: 3}
+  playerLaser: {fileID: 8300000, guid: 74f6c9d140e856e4ba607656c532cdbf, type: 3}
+  playerFireball: {fileID: 8300000, guid: 0166b39144b52da4eb6ddd3ec7bcfab1, type: 3}
+  enemyGun: {fileID: 8300000, guid: 85ce38002f876d64284869da57483ad0, type: 3}
+  enemyHit: {fileID: 8300000, guid: cb560c7ad70498e41b383daecd8fd017, type: 3}
+  sceneMusic:
+  - sceneName: Forest
+    track: {fileID: 8300000, guid: 8ae6d81e84e436a4f9b1eac5bd827519, type: 3}
+  - sceneName: WaterFall
+    track: {fileID: 8300000, guid: 9146b5cc3cb826e4f817fc0c8e83f2a7, type: 3}
+  bossClear: {fileID: 0}
+  resumeMusicAfterBossClear: 1
+  playerVolume: 0.2
+  enemyVolume: 0.2
+  musicVolume: 0.35
+  bossClearVolume: 0.7
+  minRepeatInterval: 0.05
+  pitchJitter: 0.06
+  channelCount: 8
+  maxVoiceLength: 0.35
+  duckWhenBusy: 0.34
+  duckThreshold: 2

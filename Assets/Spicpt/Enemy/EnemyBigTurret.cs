@@ -74,6 +74,30 @@ public class EnemyBigTurret : MonoBehaviour
     [SerializeField] private float maxAimAngle = 80f;
     [SerializeField] private float barrelLength = 1.2f;
 
+    [Header("Muzzle (ปลายกระบอก)")]
+    /// <summary>
+    /// ลากตัวกระบอกปืนมาใส่ ปลายกระบอกจะวัดจากตัวนี้แทน
+    ///
+    /// วัดตามแกนแดง (barrel.right) ยาวเท่า Barrel Length
+    /// กระบอกหมุนหรือพลิก ปลายก็ขยับตามเอง ไม่ต้องมาแก้ตัวเลขซ้ำ
+    /// </summary>
+    [SerializeField] private Transform barrel;
+
+    /// <summary>
+    /// ขยับปลายกระบอกแบบอิสระ ใช้ตอนไม่ได้ลาก Barrel
+    ///
+    /// **จำเป็นเพราะ Barrel Length ขยับได้แค่แกนเดียว**
+    /// มันเลื่อนไปตามทิศหันเท่านั้น ถ้ากระบอกบนสไปรต์ไม่ได้อยู่ระดับเดียว
+    /// กับจุดหมุนของออบเจกต์ จะเลื่อนยังไงก็ไม่มีวันตรง
+    ///
+    /// นับเป็นพิกัดในตัวออบเจกต์ ย่อขยายหรือพลิกสไปรต์แล้วมันตามให้เอง
+    /// y บวก = ขยับขึ้น, x บวก = ขยับไปทางขวาของตัวป้อม
+    /// </summary>
+    [SerializeField] private Vector2 muzzleOffset = Vector2.zero;
+
+    /// <summary>วาดจุดปลายกระบอกใน Scene view ตอนเลือกป้อม</summary>
+    [SerializeField] private bool showMuzzleGizmo = true;
+
     /// <summary>ยิงได้แค่ 8 ทิศ ไม่เล็งองศาอิสระ</summary>
     [SerializeField] private bool useEightDirections = true;
 
@@ -368,8 +392,16 @@ public class EnemyBigTurret : MonoBehaviour
 
     private Vector2 GetFirePosition()
     {
+        // ลาก Barrel มาใส่แล้วเชื่อตัวกระบอกอย่างเดียว ไม่ต้องเดาด้วย offset อีก
+        if (barrel != null)
+        {
+            return (Vector2)barrel.position +
+                (Vector2)(barrel.right * barrelLength);
+        }
+
         return (Vector2)transform.position +
-            facingDirection.normalized * barrelLength;
+            facingDirection.normalized * barrelLength +
+            (Vector2)transform.TransformVector(muzzleOffset);
     }
 
     private Vector2 GetAimPoint()
@@ -391,5 +423,20 @@ public class EnemyBigTurret : MonoBehaviour
             transform.position,
             transform.position + facing * detectionRange
         );
+
+        if (!showMuzzleGizmo)
+            return;
+
+        // จุดที่กระสุนเกิดจริง ไม่ใช่จุดหมุนของป้อม
+        // เลื่อน Muzzle Offset แล้วดูลูกกลมนี้ให้ทับปลายกระบอกบนภาพ
+        Vector3 spot = GetFirePosition();
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(spot, 0.18f);
+
+        Gizmos.color = new Color(1f, 0.6f, 0f);
+        Gizmos.DrawLine(transform.position, spot);
+
+        Gizmos.color = Color.white;
     }
 }

@@ -110,6 +110,33 @@ public class EnemyStopAndShoot : MonoBehaviour
     private int bulletsLeft;
     private Vector2 lockedAim = Vector2.left;
 
+    /// <summary>
+    /// ให้จุดเกิดสั่งพฤติกรรมเฉพาะตัว
+    ///
+    /// ต้นฉบับเก็บ "ยิงได้ไหม" ไว้ในบิต 2 ของ ENEMY_ATTRIBUTES ของทหารแต่ละตัว
+    /// ทหารตัวเดียวกันเป๊ะ แต่จุดเกิดต่างกันทำให้บางตัวยิง บางตัววิ่งผ่านเฉยๆ
+    ///
+    /// เรียกหลัง Instantiate ได้เลย จะทับค่าใน prefab
+    /// </summary>
+    public void Configure(bool shoots, int bulletsMin, int bulletsMax,
+        float runTime)
+    {
+        minBullets = Mathf.Max(1, bulletsMin);
+        maxBullets = Mathf.Max(minBullets, bulletsMax);
+
+        if (runTime > 0f)
+        {
+            runTimeBetweenBursts = runTime;
+        }
+
+        if (shoots)
+            return;
+
+        // ไม่ยิงก็ปิดตัวเองทิ้ง เหลือแต่ EnemyRunner ที่วิ่งอย่างเดียว
+        // OnDisable ปลด Halted ให้อยู่แล้ว ตัวจะไม่ค้างยืนนิ่ง
+        enabled = false;
+    }
+
     private void Awake()
     {
         runner = GetComponent<EnemyRunner>();

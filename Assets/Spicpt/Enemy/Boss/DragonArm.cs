@@ -137,6 +137,12 @@ public class DragonArm : MonoBehaviour
     /// <summary>หน่วงนัดแรก ให้สองแขนไม่ยิงพร้อมกันเป๊ะ</summary>
     [SerializeField] private float firstFireDelay = 1.2f;
 
+    /// <summary>
+    /// มือเพิ่งกวาดกลับเข้าจอ ต้องรออย่างน้อยเท่านี้ถึงยิงได้
+    /// ไม่งั้นพอโผล่มาจะยิงใส่ทันทีในเฟรมเดียวกัน ซึ่งไม่มีทางหลบทัน
+    /// </summary>
+    [SerializeField] private float onScreenGrace = 0.35f;
+
     /// <summary>ความเร็วไฟ ต้นฉบับใช้ bullet speed code 5 ช้ากว่าไฟจากปาก</summary>
     [SerializeField] private float fireballSpeedScale = 0.85f;
 
@@ -154,6 +160,7 @@ public class DragonArm : MonoBehaviour
     [SerializeField] private float orbExplosionInterval = 0.07f;
 
     private DragonBoss boss;
+    private SpriteRenderer handSprite;
     private float fireTimer;
     private bool dead;
     private Transform player;
@@ -280,6 +287,8 @@ public class DragonArm : MonoBehaviour
         if (hand != null)
         {
             hand.OnDied += OnHandDestroyed;
+
+            handSprite = hand.GetComponentInChildren<SpriteRenderer>();
         }
     }
 
@@ -505,6 +514,16 @@ public class DragonArm : MonoBehaviour
         if (fireballPrefab == null || hand == null)
             return;
 
+        // แขนยังกวาดไปมาได้ตามปกติ หยุดแค่การยิง
+        // ถ้าหยุดขยับด้วย เวลามันเลื่อนเข้าจอจะดูเหมือนบอสค้าง
+        if (!CanFire())
+        {
+            // ค้างตัวนับไว้เผื่อไว้นิดนึง พอโผล่เข้าจอจะได้ไม่ยิงใส่ทันที
+            fireTimer = Mathf.Max(fireTimer, onScreenGrace);
+
+            return;
+        }
+
         fireTimer -= Time.deltaTime;
 
         if (fireTimer > 0f)
@@ -513,6 +532,29 @@ public class DragonArm : MonoBehaviour
         fireTimer = fireInterval;
 
         Fire();
+    }
+
+    /// <summary>
+    /// วัดจากมือ ไม่ใช่หัวไหล่
+    ///
+    /// มือคือจุดที่ไฟออก แขนกวาดจนมือหลุดออกนอกจอได้ทั้งที่ตัวบอสยังเห็นอยู่
+    /// ถ้าวัดจากหัวไหล่ ไฟจะโผล่มาจากที่ที่มองไม่เห็น ซึ่งคือสิ่งที่ไม่อยากให้เกิด
+    /// </summary>
+    private bool CanFire()
+    {
+        // ไม่ได้ผูกกับบอส ถือว่าเปิดไว้ ปลอดภัยกับผู้เล่นมากกว่า
+        bool gated = boss == null || boss.OnlyAttackOnScreen;
+
+        if (!gated)
+            return true;
+
+        Bounds box = handSprite != null
+            ? handSprite.bounds
+            : new Bounds(hand.transform.position, Vector3.zero);
+
+        float margin = boss != null ? boss.ScreenMargin : 0f;
+
+        return DragonBoss.IsInsideView(box, margin);
     }
 
     private void Fire()

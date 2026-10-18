@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// ป้อมอาวุธแบบ Contra — ติดอยู่กับที่ ไม่ยิงสวน
@@ -37,6 +37,10 @@ public class WeaponPod : MonoBehaviour
     [Header("Rapid Fire (ไอเทม R)")]
     /// <summary>บังคับให้ชิ้นนี้เป็นไอเทมยิงรัวแทนอาวุธ</summary>
     [SerializeField] private bool dropRapidFire;
+
+    /// <summary>ดรอปอะไรออกมา Barrier กับ Falcon ไม่ได้เปลี่ยนปืนที่ถืออยู่</summary>
+    [SerializeField]
+    private WeaponPickup.PickupKind dropKind = WeaponPickup.PickupKind.Weapon;
 
     /// <summary>โอกาสสุ่มออกเป็นไอเทมยิงรัว 0 = ไม่สุ่มเลย 1 = ออกแน่นอน</summary>
     [Range(0f, 1f)]
@@ -122,12 +126,28 @@ public class WeaponPod : MonoBehaviour
     {
         dropRapidFire = value;
         rapidFireChance = value ? 1f : 0f;
+
+        dropKind = value
+            ? WeaponPickup.PickupKind.RapidFire
+            : WeaponPickup.PickupKind.Weapon;
     }
 
     public void SetWeapon(WeaponType type)
     {
         randomWeapon = false;
         weaponType = type;
+    }
+
+    /// <summary>สั่งว่าตัวนี้ดรอปอะไร รองรับ Barrier กับ Falcon ด้วย</summary>
+    public void SetDropKind(WeaponPickup.PickupKind kind)
+    {
+        dropKind = kind;
+
+        if (kind != WeaponPickup.PickupKind.Weapon)
+        {
+            rapidFireChance = 0f;
+            dropRapidFire = kind == WeaponPickup.PickupKind.RapidFire;
+        }
     }
 
     private void OnDestroy()
@@ -212,6 +232,14 @@ public class WeaponPod : MonoBehaviour
             );
 
             Destroy(pickupObject);
+            return;
+        }
+
+        if (dropKind == WeaponPickup.PickupKind.Barrier ||
+            dropKind == WeaponPickup.PickupKind.Falcon)
+        {
+            pickup.SetKind(dropKind);
+
             return;
         }
 

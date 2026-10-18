@@ -14,6 +14,20 @@ public class EnemyTurret : MonoBehaviour
     [SerializeField] private Transform barrel;
     [SerializeField] private float barrelLength = 0.6f;
 
+    /// <summary>
+    /// ขยับปลายกระบอกแบบอิสระ ใช้ตอนไม่ได้ลาก Barrel
+    ///
+    /// **จำเป็นเพราะ Barrel Length ขยับได้แค่แกนเดียว**
+    /// มันเลื่อนไปตามทิศหันเท่านั้น ถ้ากระบอกบนสไปรต์ไม่ได้อยู่ระดับเดียว
+    /// กับจุดหมุนของออบเจกต์ จะเลื่อนยังไงก็ไม่มีวันตรง
+    ///
+    /// นับเป็นพิกัดในตัวออบเจกต์ ย่อขยายหรือพลิกสไปรต์แล้วมันตามให้เอง
+    /// </summary>
+    [SerializeField] private Vector2 muzzleOffset = Vector2.zero;
+
+    /// <summary>วาดจุดปลายกระบอกใน Scene view ตอนเลือกป้อม</summary>
+    [SerializeField] private bool showMuzzleGizmo = true;
+
     [Header("Aiming")]
     [SerializeField] private float detectionRange = 14f;
     [SerializeField] private float aimHeightOffset = 0.9f;
@@ -184,7 +198,8 @@ public class EnemyTurret : MonoBehaviour
         }
 
         return (Vector2)transform.position +
-            facingDirection.normalized * barrelLength;
+            facingDirection.normalized * barrelLength +
+            (Vector2)transform.TransformVector(muzzleOffset);
     }
 
     private Vector2 GetAimPoint()
@@ -207,5 +222,19 @@ public class EnemyTurret : MonoBehaviour
             transform.position,
             transform.position + facing * detectionRange
         );
+
+        if (!showMuzzleGizmo)
+            return;
+
+        // จุดที่กระสุนเกิดจริง ไม่ใช่จุดหมุนของป้อม
+        Vector3 spot = GetFirePosition();
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(spot, 0.12f);
+
+        Gizmos.color = new Color(1f, 0.6f, 0f);
+        Gizmos.DrawLine(transform.position, spot);
+
+        Gizmos.color = Color.white;
     }
 }
