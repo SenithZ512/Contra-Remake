@@ -25,6 +25,22 @@ public class BaseStage : MonoBehaviour
     /// <summary>เข้าห้องใหม่แล้วตัวละครกระโดดเบาๆ หนึ่งที แบบต้นฉบับ</summary>
     [SerializeField] private bool hopOnEnterRoom = true;
 
+    [Header("Stage Clear (จบด่านแล้วไปต่อ)")]
+    /// <summary>
+    /// เก็บบอสแล้วกดขึ้นที่ห้องสุดท้าย จะเดินเข้าจอไปด่านถัดไปเลย
+    ///
+    /// ด่านฐานไม่มีทางให้เดินไปหาทางออกเหมือนด่านข้าง
+    /// เลยใช้การกดขึ้นผ่านห้องสุดท้ายเป็นตัวจบด่านแทน ซึ่งเป็นท่าเดียวกับที่ใช้ทั้งด่าน
+    /// </summary>
+    [SerializeField] private bool goToNextSceneWhenCleared = true;
+
+    [SerializeField] private float clearDelay = 0.4f;
+
+    [SerializeField] private float clearFadeDuration = 0.9f;
+
+    /// <summary>ว่างไว้ = ไปฉากถัดไปตามลำดับใน Build Settings</summary>
+    [SerializeField] private string overrideSceneName;
+
     [Header("References")]
     [SerializeField] private BasePlayer player;
     [SerializeField] private SpriteRenderer blackoutOverlay;
@@ -151,7 +167,21 @@ public class BaseStage : MonoBehaviour
 
         if (next >= rooms.Count)
         {
-            Debug.Log("เคลียร์ Base 1 ครบทุกห้องแล้ว");
+            Debug.Log("เคลียร์ทุกห้องแล้ว จบด่าน");
+
+            if (goToNextSceneWhenCleared)
+            {
+                // จอดำอยู่แล้วจากจังหวะเปลี่ยนห้อง ต่อด้วยการโหลดฉากถัดไปได้เลย
+                SceneFlow.GoToNext(
+                    this,
+                    clearDelay,
+                    clearFadeDuration,
+                    overrideSceneName,
+                    false
+                );
+
+                yield break;
+            }
 
             transitioning = false;
 

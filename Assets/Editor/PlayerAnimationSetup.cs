@@ -35,6 +35,12 @@ public static class PlayerAnimationSetup
     private const string FolderCrouch = "PlayerCrouch";
 
     /// <summary>
+    /// ท่ายืนนิ่งยิงขึ้นฟ้า มีโฟลเดอร์ของตัวเองแล้ว
+    /// ถ้าหาโฟลเดอร์นี้เจอจะใช้อันนี้ ถ้าไม่เจอค่อยถอยไปใช้เฟรมตรึงข้างล่าง
+    /// </summary>
+    private const string FolderAimUpStand = "Stand still and fire into the sky_";
+
+    /// <summary>
     /// ท่ายืนนิ่งยิงขึ้นตรงๆ ไม่มีโฟลเดอร์ของตัวเอง
     ///
     /// รูปใน "Shoot straight up" เป็นท่าวิ่งทุกเฟรม ขาก้าวหมด
@@ -67,6 +73,8 @@ public static class PlayerAnimationSetup
             return;
         }
 
+        NormalizeImportSettings();
+
         Dictionary<string, AnimationClip> clips = BuildAllClips();
 
         if (clips.Count == 0)
@@ -83,6 +91,167 @@ public static class PlayerAnimationSetup
         Debug.Log(
             "เชื่อมอนิเมชั่นเสร็จแล้ว รวม " + clips.Count + " คลิป"
         );
+    }
+
+    // ---------- ตั้งค่านำเข้ารูป ----------
+
+    /// <summary>ขนาดมาตรฐานของสไปรท์ตัวละครหลัก</summary>
+    private const float SpritePixelsPerUnit = 410f;
+
+    /// <summary>
+    /// ค่า PPU ที่ Unity ตั้งให้เองตอนลากรูปเข้ามาใหม่
+    /// เจอค่านี้เมื่อไหร่แปลว่ายังไม่เคยตั้ง ต้องจัดให้
+    /// </summary>
+    private const float DefaultPixelsPerUnit = 100f;
+
+    /// <summary>
+    /// จัดค่านำเข้าให้รูปที่เพิ่งลากเข้ามาใหม่
+    ///
+    /// ปัญหานี้เกิดซ้ำทุกครั้งที่เพิ่มท่าใหม่ — รูปเข้ามาด้วย PPU 100
+    /// และจุดหมุนกลางภาพ ตัวละครเลยตัวใหญ่ผิดขนาดและลอยเหนือพื้น
+    ///
+    /// ตรงนี้หาขอบล่างของตัวละครในรูปจริงๆ แล้วตั้งจุดหมุนไว้ที่เท้า
+    /// ไม่ต้องไปวัดเอง และไม่แตะโฟลเดอร์ที่ตั้งค่าไว้แล้ว
+    /// </summary>
+    private static void NormalizeImportSettings()
+    {
+        List<string> pending = new List<string>();
+
+        foreach (string folder in AssetDatabase.GetSubFolders(SpriteRoot))
+        {
+            foreach (string file in Directory.GetFiles(folder))
+            {
+                if (!IsImage(file))
+                    continue;
+
+                string path = file.Replace("\\", "/");
+
+                if (NeedsSetup(path))
+                {
+                    pending.Add(path);
+                }
+            }
+        }
+
+        if (pending.Count == 0)
+            return;
+
+        // รวบนำเข้าใหม่เป็นชุดเดียว ไม่งั้น Unity จะนำเข้าทีละไฟล์แล้วช้ามาก
+        AssetDatabase.StartAssetEditing();
+
+        try
+        {
+            for (int i = 0; i < pending.Count; i++)
+            {
+                EditorUtility.DisplayProgressBar(
+                    "ตั้งค่ารูปตัวละคร",
+                    Path.GetFileName(pending[i]),
+                    i / (float)pending.Count
+                );
+
+                NormalizeOne(pending[i]);
+            }
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+
+            AssetDatabase.StopAssetEditing();
+        }
+
+        Debug.Log(
+            "ตั้งค่านำเข้าให้รูปใหม่ " + pending.Count + " ไฟล์ " +
+            "(PPU " + SpritePixelsPerUnit + " และจุดหมุนที่เท้า)"
+        );
+    }
+
+    /// <summary>ยังเป็นค่า default อยู่ไหม ถ้าตั้งแล้วก็ไม่ต้องไปยุ่ง</summary>
+    private static bool NeedsSetup(string path)
+    {
+        TextureImporter importer =
+            AssetImporter.GetAtPath(path) as TextureImporter;
+
+        return importer != null &&
+            Mathf.Approximately(
+                importer.spritePixelsPerUnit, DefaultPixelsPerUnit);
+    }
+
+    /// <summary>ตั้งค่าให้ไฟล์เดียว นำเข้าใหม่รอบเดียวจบ</summary>
+    private static void NormalizeOne(string path)
+    {
+        TextureImporter importer =
+            AssetImporter.GetAtPath(path) as TextureImporter;
+
+        if (importer == null)
+            return;
+
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.spritePixelsPerUnit = SpritePixelsPerUnit;
+        importer.filterMode = FilterMode.Point;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.mipmapEnabled = false;
+        importer.alphaIsTransparency = true;
+
+        TextureImporterSettings settings = new TextureImporterSettings();
+        importer.ReadTextureSettings(settings);
+
+        settings.spriteMeshType = SpriteMeshType.FullRect;
+        settings.spriteAlignment = (int)SpriteAlignment.Custom;
+        settings.spritePivot = new Vector2(0.5f, FindFeetPivot(path));
+
+        importer.SetTextureSettings(settings);
+
+        importer.SaveAndReimport();
+    }
+
+    /// <summary>
+    /// หาแถวล่างสุดที่ยังมีสีอยู่ แล้วคิดเป็นสัดส่วนความสูง
+    /// ได้จุดหมุนที่อยู่ระดับเท้าพอดี ไม่ว่าตัวละครจะวางอยู่ตรงไหนของรูป
+    ///
+    /// อ่านไฟล์ PNG จากดิสก์ตรงๆ ไม่ยุ่งกับตัวนำเข้า
+    /// วิธีเดิมเปิด isReadable แล้วสั่งนำเข้าใหม่สองรอบต่อไฟล์
+    /// ซึ่งกับรูป 1920x1080 แบบไม่บีบอัด ทำเอา Editor ค้างเป็นนาที
+    /// </summary>
+    private static float FindFeetPivot(string path)
+    {
+        Texture2D probe = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+
+        try
+        {
+            if (!probe.LoadImage(File.ReadAllBytes(path)))
+                return 0f;
+
+            Color32[] pixels = probe.GetPixels32();
+
+            // GetPixels32 เรียงจากล่างขึ้นบน แถว 0 คือขอบล่างของรูป
+            // ตัวละครเท้าอยู่ล่าง เลยเจอตั้งแต่แถวแรกๆ ไม่ต้องไล่ทั้งรูป
+            for (int row = 0; row < probe.height; row++)
+            {
+                int start = row * probe.width;
+
+                for (int column = 0; column < probe.width; column++)
+                {
+                    if (pixels[start + column].a > 16)
+                        return row / (float)probe.height;
+                }
+            }
+
+            return 0f;
+        }
+        catch (System.Exception error)
+        {
+            Debug.LogWarning(
+                "อ่านรูปไม่ได้ ใช้จุดหมุนที่ขอบล่างแทน: " + path +
+                " (" + error.Message + ")"
+            );
+
+            return 0f;
+        }
+        finally
+        {
+            Object.DestroyImmediate(probe);
+        }
     }
 
     // ---------- สร้างคลิป ----------
@@ -149,8 +318,14 @@ public static class PlayerAnimationSetup
             }
         }
 
-        // ท่ายืนยิงขึ้น ตัดมาจากท่าวิ่งยิงขึ้นเฟรมเดียว
-        if (result.ContainsKey(FolderAimUpStraight))
+        // มีโฟลเดอร์ท่ายืนยิงขึ้นจริงแล้วก็ไม่ต้องตัดเฟรมมาทำเอง
+        if (result.ContainsKey(FolderAimUpStand))
+        {
+            Debug.Log(
+                "ใช้โฟลเดอร์ \"" + FolderAimUpStand + "\" เป็นท่ายืนยิงขึ้น"
+            );
+        }
+        else if (result.ContainsKey(FolderAimUpStraight))
         {
             List<Sprite> upSprites = LoadSpritesSorted(
                 SpriteRoot + "/" + FolderAimUpStraight
@@ -231,16 +406,28 @@ public static class PlayerAnimationSetup
         return ext == ".png" || ext == ".jpg" || ext == ".jpeg";
     }
 
+    /// <summary>
+    /// ดึงเลขลำดับจากชื่อไฟล์
+    ///
+    /// รองรับสองแบบที่เจอในโปรเจกต์นี้
+    ///   "Shoot straight up 11"                    เลขต่อท้ายตรงๆ
+    ///   "Stand still and fire into the sky (11)"  เลขในวงเล็บ แบบที่ Windows ตั้งให้ตอนก๊อป
+    ///
+    /// วิธีเดิมจับเฉพาะเลขที่อยู่ท้ายสุดจริงๆ พอเจอวงเล็บปิดคั่นก็อ่านไม่ออก
+    /// ได้ 0 หมดทุกไฟล์ แล้วอนิเมชั่นจะเล่นเรียงตามตัวอักษรแทน ซึ่งสลับลำดับ
+    /// ตอนนี้หยิบกลุ่มตัวเลข "กลุ่มสุดท้าย" ที่เจอในชื่อ ไม่สนว่ามีอะไรตามหลัง
+    /// </summary>
     private static int TrailingNumber(string path)
     {
-        Match match = Regex.Match(
+        MatchCollection numbers = Regex.Matches(
             Path.GetFileNameWithoutExtension(path),
-            @"(\d+)\s*$"
+            @"\d+"
         );
 
-        return match.Success
-            ? int.Parse(match.Groups[1].Value)
-            : 0;
+        if (numbers.Count == 0)
+            return 0;
+
+        return int.Parse(numbers[numbers.Count - 1].Value);
     }
 
     private static AnimationClip WriteClip(
@@ -410,8 +597,13 @@ public static class PlayerAnimationSetup
         AnimatorState standFire = AddState(
             machine, clips, FolderStandFire, new Vector3(280, 630, 0));
 
+        // มีโฟลเดอร์จริงก็ใช้อันนั้น ไม่มีค่อยใช้เฟรมที่ตัดมาตรึงไว้
+        string standUpClip = clips.ContainsKey(FolderAimUpStand)
+            ? FolderAimUpStand
+            : ClipAimUpStand;
+
         AnimatorState aimUpStand = AddState(
-            machine, clips, ClipAimUpStand, new Vector3(280, 700, 0));
+            machine, clips, standUpClip, new Vector3(280, 700, 0));
 
         if (idle != null)
         {
@@ -529,7 +721,7 @@ public static class PlayerAnimationSetup
                 k != FolderRunFire && k != FolderAimUp && k != FolderAimDown &&
                 k != FolderAimUpStraight && k != FolderCrouchFire &&
                 k != FolderCrouch && k != FolderStandFire &&
-                k != ClipAimUpStand)
+                k != ClipAimUpStand && k != FolderAimUpStand)
             .ToList();
 
         if (unused.Count > 0)

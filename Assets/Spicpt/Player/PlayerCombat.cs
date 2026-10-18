@@ -11,8 +11,63 @@ public class PlayerCombat : MonoBehaviour
     [SerializeField] private PlayerController playerController;
 
     [Header("Spread Gun")]
+    /// <summary>ต้นฉบับยิงครั้งละ 5 นัดเสมอ</summary>
     [SerializeField] private int spreadBulletCount = 5;
-    [SerializeField] private float spreadAngle = 45f;
+
+    /// <summary>
+    /// องศาระหว่างนัดที่ติดกัน
+    ///
+    /// ต้นฉบับเก็บทิศกระสุนเป็นตาราง 32 ช่องรอบวงกลม = ช่องละ 11.25 องศา
+    /// แล้ว S weapon หยิบช่อง -2, -1, 0, +1, +2 จากทิศที่เล็งอยู่
+    /// (ตาราง s_bullet_num_index_modifier_tbl = $00,$01,$ff,$02,$fe)
+    ///
+    /// 5 นัด x 11.25 = กางรวม 45 องศา
+    /// ของเดิมผมตั้ง 45 เป็น "ครึ่งหนึ่ง" ของพัด เลยกางเป็น 90 องศา กว้างเกินเท่าตัว
+    /// </summary>
+    [SerializeField] private float spreadAngleStep = 11.25f;
+
+    [Header("On-Screen Bullet Limit (หัวใจของความรู้สึกแบบ Contra)")]
+    /// <summary>
+    /// ต้นฉบับไม่ได้คุมจังหวะยิงด้วยเวลาอย่างเดียว
+    /// แต่คุมด้วย "จำนวนกระสุนที่ค้างอยู่บนจอ" เป็นหลัก
+    ///
+    /// ยิงใส่ศัตรูใกล้ๆ กระสุนหายเร็ว ก็ยิงรัวต่อได้
+    /// ยิงลอยๆ ไปในที่ว่าง กระสุนค้างเต็มโควตา ต้องรอจนมันหมดอายุ
+    /// นี่คือจังหวะที่ทำให้ Contra รู้สึกเป็น Contra
+    /// </summary>
+    [SerializeField] private bool limitBulletsOnScreen = true;
+
+    [SerializeField] private int normalMaxBullets = 4;
+    [SerializeField] private int machineGunMaxBullets = 6;
+    [SerializeField] private int spreadMaxBullets = 10;
+    [SerializeField] private int fireBallMaxBullets = 4;
+
+    /// <summary>
+    /// กระสุนที่ออกนอกกล้องถือว่าจบ คืนช่องว่างให้ทันที
+    ///
+    /// ต้นฉบับลบกระสุนทิ้งทันทีที่พ้นขอบจอ ช่องในตารางจึงว่างทันที
+    /// ถ้าไม่ทำแบบนี้ กระสุนจะค้างกินโควตาจนหมดอายุ ทั้งที่มองไม่เห็นแล้ว
+    /// ผลคือรู้สึกว่ายิงไม่ออกทั้งที่จอโล่ง
+    /// </summary>
+    [SerializeField] private bool despawnBulletsOffCamera = true;
+
+    /// <summary>เผื่อพ้นขอบจอไปอีกเท่าไหร่ก่อนลบ กันลบตอนยังเห็นขอบกระสุนอยู่</summary>
+    [SerializeField] private float offCameraMargin = 0.4f;
+
+    [Header("Machine Gun (จังหวะกดค้างแบบต้นฉบับ)")]
+    /// <summary>
+    /// กดค้างแล้วยิงรัว 6 นัด จากนั้นจะมีช่องว่างยาวหนึ่งจังหวะ แล้ววนใหม่
+    /// ต้นฉบับนับใน PLAYER_M_WEAPON_FIRE_TIME: ยิงทุก 8 เฟรม
+    /// พอครบ 6 นัด ($60) เกณฑ์เปลี่ยนเป็น 15 เฟรม แล้วรีเซ็ตที่ $70
+    ///
+    /// ผลคือ "แตะรัวๆ เร็วกว่ากดค้าง" เพราะปล่อยปุ่มแล้วตัวนับรีเซ็ต
+    /// </summary>
+    [SerializeField] private bool machineGunBurstRhythm = true;
+
+    [SerializeField] private int machineGunBurstLength = 6;
+
+    /// <summary>ช่องว่างหลังครบชุด 16 เฟรม</summary>
+    [SerializeField] private float machineGunBurstPause = 0.27f;
 
     [Header("Laser Beam")]
     [SerializeField] private int laserBulletCount = 2;
@@ -128,6 +183,8 @@ public class PlayerCombat : MonoBehaviour
 
     private void Update()
     {
+        PruneBullets();
+
         bool fireHeld = Input.GetKey(fireKey);
 
         // กดลูกศรแนวตั้งค้างไว้ก็เข้าท่าเล็งแล้ว ยังไม่ต้องยิง
@@ -141,6 +198,13 @@ public class PlayerCombat : MonoBehaviour
         {
             aimY = GetShootDirection().y;
             firePoseUntil = Time.time + firePoseHold;
+        }
+
+        // ปล่อยปุ่มแล้วตัวนับชุดของปืนกลรีเซ็ต
+        // นี่คือเหตุผลที่แตะรัวๆ ยิงได้เร็วกว่ากดค้างในต้นฉบับ
+        if (!fireHeld)
+        {
+            machineGunShotsInBurst = 0;
         }
 
         // ส่วนกระสุนออกจริงยังแยกตามชนิดปืน
@@ -181,6 +245,107 @@ public class PlayerCombat : MonoBehaviour
         return false;
     }
 
+    /// <summary>กระสุนที่ยิงออกไปแล้วและยังไม่หายไปจากจอ</summary>
+    private readonly System.Collections.Generic.List<GameObject> liveBullets =
+        new System.Collections.Generic.List<GameObject>();
+
+    private int machineGunShotsInBurst;
+
+    /// <summary>ยังมีที่ว่างให้กระสุนนัดใหม่ไหม</summary>
+    private bool HasBulletRoom()
+    {
+        if (!limitBulletsOnScreen)
+            return true;
+
+        return liveBullets.Count < GetBulletLimit();
+    }
+
+    /// <summary>
+    /// เก็บกวาดรายการกระสุนทุกเฟรม
+    /// ตัวที่โดนทำลายไปแล้วเอาออก ตัวที่พ้นขอบจอไปก็ลบทิ้งแล้วคืนช่อง
+    /// </summary>
+    private void PruneBullets()
+    {
+        // Unity คืนค่า null ให้ออบเจกต์ที่ถูกทำลายแล้ว ใช้กวาดทิ้งได้เลย
+        liveBullets.RemoveAll(bullet => bullet == null);
+
+        if (!despawnBulletsOffCamera)
+            return;
+
+        Camera view = Camera.main;
+
+        if (view == null || !view.orthographic)
+            return;
+
+        // ใช้ขอบที่มองเห็นจริง ถ้าล็อกจอเป็น 4:3 ไว้ aspect ก็จะเป็น 4:3 ตามนั้น
+        float halfHeight = view.orthographicSize + offCameraMargin;
+        float halfWidth = view.orthographicSize * view.aspect + offCameraMargin;
+
+        Vector2 center = view.transform.position;
+
+        for (int i = liveBullets.Count - 1; i >= 0; i--)
+        {
+            Vector3 spot = liveBullets[i].transform.position;
+
+            if (Mathf.Abs(spot.x - center.x) <= halfWidth &&
+                Mathf.Abs(spot.y - center.y) <= halfHeight)
+            {
+                continue;
+            }
+
+            Destroy(liveBullets[i]);
+
+            liveBullets.RemoveAt(i);
+        }
+    }
+
+    private int GetBulletLimit()
+    {
+        switch (weaponSystem.CurrentWeapon)
+        {
+            case WeaponType.MachineGun: return machineGunMaxBullets;
+            case WeaponType.SpreadGun: return spreadMaxBullets;
+            case WeaponType.FireBall: return fireBallMaxBullets;
+
+            // เลเซอร์ไม่คิดโควตา เพราะยิงนัดใหม่แล้วนัดเก่าหายไปเองอยู่แล้ว
+            case WeaponType.Laser: return int.MaxValue;
+
+            default: return normalMaxBullets;
+        }
+    }
+
+    private void RegisterBullet(GameObject bullet)
+    {
+        if (limitBulletsOnScreen && bullet != null)
+        {
+            liveBullets.Add(bullet);
+        }
+    }
+
+    /// <summary>
+    /// จังหวะกดค้างของปืนกล
+    /// ครบชุดแล้วเว้นช่องว่างยาวหนึ่งที ปล่อยปุ่มเมื่อไหร่ตัวนับรีเซ็ต
+    /// </summary>
+    private float GetFireDelay()
+    {
+        float rate = weaponSystem.CurrentFireRate;
+
+        if (!machineGunBurstRhythm ||
+            weaponSystem.CurrentWeapon != WeaponType.MachineGun)
+        {
+            return rate;
+        }
+
+        machineGunShotsInBurst++;
+
+        if (machineGunShotsInBurst < machineGunBurstLength)
+            return rate;
+
+        machineGunShotsInBurst = 0;
+
+        return machineGunBurstPause;
+    }
+
     private void TryShoot()
     {
         if (weaponSystem == null)
@@ -189,8 +354,11 @@ public class PlayerCombat : MonoBehaviour
         if (Time.time < nextFireTime)
             return;
 
-        nextFireTime =
-            Time.time + weaponSystem.CurrentFireRate;
+        // เต็มโควตาแล้วก็ยังกดไม่ออก ต้องรอให้กระสุนเก่าหายไปก่อน
+        if (!HasBulletRoom())
+            return;
+
+        nextFireTime = Time.time + GetFireDelay();
 
         Vector2 direction =
             GetShootDirection();
@@ -244,6 +412,8 @@ public class PlayerCombat : MonoBehaviour
         }
 
         bullet.Initialize(direction);
+
+        RegisterBullet(bulletObject);
     }
 
     private void ShootSpread(Vector2 direction)
@@ -260,20 +430,22 @@ public class PlayerCombat : MonoBehaviour
             return;
         }
 
+        // กางออกจากนัดกลางข้างละเท่าๆ กัน ช่องละ spreadAngleStep องศา
+        // 5 นัดที่ 11.25 องศา = -22.5, -11.25, 0, +11.25, +22.5
         float startAngle =
-            -spreadAngle;
-
-        float angleStep =
-            (spreadAngle * 2f) /
-            (spreadBulletCount - 1);
+            -spreadAngleStep * (spreadBulletCount - 1) * 0.5f;
 
         for (int i = 0;
              i < spreadBulletCount;
              i++)
         {
+            // เต็มโควตากลางพัดก็หยุด ต้นฉบับก็ออกไม่ครบชุดเหมือนกัน
+            if (!HasBulletRoom())
+                return;
+
             float angle =
                 startAngle +
-                angleStep * i;
+                spreadAngleStep * i;
 
             Vector2 spreadDirection =
                 RotateDirection(
@@ -311,6 +483,8 @@ public class PlayerCombat : MonoBehaviour
         }
 
         bullet.Initialize(direction);
+
+        RegisterBullet(bulletObject);
     }
 
     private void ShootFireball(Vector2 direction)
@@ -339,6 +513,8 @@ public class PlayerCombat : MonoBehaviour
         }
 
         bullet.Initialize(direction);
+
+        RegisterBullet(bulletObject);
     }
 
     private void ShootLaser(Vector2 direction)

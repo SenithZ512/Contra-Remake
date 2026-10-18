@@ -163,6 +163,9 @@ public static class BaseStageSetup
         cameraObject.transform.position = new Vector3(0f, 0f, -10f);
 
         cameraObject.AddComponent<AudioListener>();
+
+        // ล็อกกรอบภาพเป็น 4:3 แบบทีวียุคนั้น จอ 16:10 จะได้ไม่เห็นกว้างเกินจริง
+        cameraObject.AddComponent<ScreenAspect>();
     }
 
     // ---------- พรีแฟบ ----------

@@ -1,9 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class LaserBullet : MonoBehaviour
 {
     [Header("Bullet Settings")]
-    [SerializeField] private float speed = 25f;
+    [SerializeField] private float speed = 15.8f;
     [SerializeField] private float lifetime = 1.5f;
     [SerializeField] private int damage = 1;
 

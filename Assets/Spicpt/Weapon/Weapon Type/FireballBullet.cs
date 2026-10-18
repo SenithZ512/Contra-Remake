@@ -1,9 +1,9 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class FireballBullet : MonoBehaviour
 {
     [Header("Bullet Settings")]
-    [SerializeField] private float speed = 6f;
+    [SerializeField] private float speed = 3.95f;
     [SerializeField] private float lifetime = 1f;
     [SerializeField] private int damage = 1;
 

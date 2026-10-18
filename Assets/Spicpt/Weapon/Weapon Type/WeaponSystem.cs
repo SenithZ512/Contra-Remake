@@ -6,11 +6,19 @@ public class WeaponSystem : MonoBehaviour
     [SerializeField] private WeaponType currentWeapon = WeaponType.Normal;
 
     [Header("Fire Rate (วินาทีต่อนัด ยิ่งมากยิ่งยิงช้า)")]
-    [SerializeField] private float normalFireRate = 0.55f;
-    [SerializeField] private float machineGunFireRate = 0.14f;
-    [SerializeField] private float spreadGunFireRate = 0.34f;
+    /// <summary>
+    /// ต้นฉบับแทบไม่ได้ใช้ตัวจับเวลาคุมปืนที่กดทีละนัด
+    /// ตัวที่คุมจริงคือโควตากระสุนบนจอ (ดู PlayerCombat)
+    /// ค่าพวกนี้เลยตั้งต่ำไว้เป็นแค่กันกดรัวจนเกมสะดุด
+    /// </summary>
+    [SerializeField] private float normalFireRate = 0.1f;
+
+    /// <summary>ต้นฉบับยิงทุก 8 เฟรม ตอนกดค้าง</summary>
+    [SerializeField] private float machineGunFireRate = 0.133f;
+
+    [SerializeField] private float spreadGunFireRate = 0.12f;
     [SerializeField] private float laserFireRate = 0.41f;
-    [SerializeField] private float fireBallFireRate = 0.28f;
+    [SerializeField] private float fireBallFireRate = 0.2f;
 
     /// <summary>กันตั้งเป็น 0 แล้วยิงรัวจนเกมค้าง</summary>
     [SerializeField] private float minimumFireRate = 0.03f;
