@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// ทหารในด่านฐาน สี่แบบตามต้นฉบับ
@@ -528,6 +528,8 @@ public class BaseSoldier : MonoBehaviour, IBaseDamageable
             return;
 
         dead = true;
+
+        GameAudio.EnemyHit();
 
         if (explosionPrefab != null)
         {

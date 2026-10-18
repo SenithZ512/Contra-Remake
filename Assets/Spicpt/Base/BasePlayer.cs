@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -328,6 +328,10 @@ public class BasePlayer : MonoBehaviour
             : fallbackFireRate;
 
         nextFireTime = Time.time + rate;
+
+        GameAudio.PlayerShot(
+            weaponSystem != null ? weaponSystem.CurrentWeapon : WeaponType.Normal
+        );
 
         Vector2 offset = crouching ? crouchMuzzleOffset : muzzleOffset;
 

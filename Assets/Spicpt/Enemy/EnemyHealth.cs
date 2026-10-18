@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class EnemyHealth : MonoBehaviour
@@ -74,6 +74,8 @@ public class EnemyHealth : MonoBehaviour
         }
 
         currentHealth -= damage;
+
+        GameAudio.EnemyHit();
 
         if (currentHealth <= 0)
         {

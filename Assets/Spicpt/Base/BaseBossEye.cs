@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -244,6 +244,8 @@ public class BaseBossEye : MonoBehaviour, IBaseDamageable
 
         health -= damage;
         flashTimer = hitFlashDuration;
+
+        GameAudio.EnemyHit();
 
         if (health > 0)
             return;

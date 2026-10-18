@@ -360,6 +360,10 @@ public class PlayerCombat : MonoBehaviour
 
         nextFireTime = Time.time + GetFireDelay();
 
+        // เล่นเสียงครั้งเดียวต่อการกด ไม่ใช่ต่อกระสุน
+        // ปืนกระจายยิงทีละ 5 นัด ถ้าเล่นทุกนัดจะดังซ้อน 5 เท่า
+        GameAudio.PlayerShot(weaponSystem.CurrentWeapon);
+
         Vector2 direction =
             GetShootDirection();
 

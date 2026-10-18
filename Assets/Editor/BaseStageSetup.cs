@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -290,6 +290,8 @@ public static class BaseStageSetup
 
         data.FindProperty("destroyEffectPrefab").objectReferenceValue =
             explosionPrefab;
+        data.FindProperty("silentSpawn").boolValue = true;
+
         data.ApplyModifiedPropertiesWithoutUndo();
 
         return go;
@@ -319,6 +321,8 @@ public static class BaseStageSetup
 
         data.FindProperty("destroyEffectPrefab").objectReferenceValue =
             explosionPrefab;
+        data.FindProperty("silentSpawn").boolValue = true;
+
         data.ApplyModifiedPropertiesWithoutUndo();
 
         return go;

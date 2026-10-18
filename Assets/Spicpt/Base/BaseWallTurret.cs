@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// ป้อมปืนติดผนังในด่านฐาน
@@ -222,6 +222,8 @@ public class BaseWallTurret : MonoBehaviour, IBaseDamageable
             return;
 
         health -= damage;
+
+        GameAudio.EnemyHit();
 
         if (health > 0)
             return;

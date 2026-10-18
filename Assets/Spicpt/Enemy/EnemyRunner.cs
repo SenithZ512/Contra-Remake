@@ -144,10 +144,25 @@ public class EnemyRunner : MonoBehaviour
         edgeBehaviour = behaviour;
     }
 
+    /// <summary>
+    /// หยุดวิ่งชั่วคราว แรงโน้มถ่วงยังทำงานปกติ
+    /// ใช้ตอนยืนยิง ให้ EnemyStopAndShoot สั่งเปิดปิด
+    /// </summary>
+    public bool Halted { get; set; }
+
     private void FixedUpdate()
     {
         if (rb == null)
             return;
+
+        if (Halted)
+        {
+            // หยุดเฉพาะแกนนอน ยังตกตามแรงโน้มถ่วงได้
+            // และไม่เช็คขอบด้วย ไม่งั้นจะกลับทิศทั้งที่ยืนนิ่งอยู่
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+
+            return;
+        }
 
         float direction = GetMoveDirection();
 

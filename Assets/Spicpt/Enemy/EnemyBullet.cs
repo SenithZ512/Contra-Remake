@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class EnemyBullet : MonoBehaviour
 {
@@ -39,6 +39,13 @@ public class EnemyBullet : MonoBehaviour
                 "EnemyBullet: ต้องมี Rigidbody2D"
             );
         }
+    }
+
+    private void Start()
+    {
+        // ดักที่ตัวกระสุน ครอบคลุมศัตรูทุกตัวที่ยิงกระสุนชนิดนี้ในทีเดียว
+        // ไม่ต้องไปไล่ใส่ทีละสคริปต์
+        GameAudio.EnemyShot();
     }
 
     public void Initialize(Vector2 direction)

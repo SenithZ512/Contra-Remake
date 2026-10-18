@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// แกนพลังงานบนกำแพง - Nuclear Ball (レーザー制御核ボル)
@@ -213,6 +213,8 @@ public class BaseCore : MonoBehaviour, IBaseDamageable
             return;
 
         health -= damage;
+
+        GameAudio.EnemyHit();
 
         if (health > 0)
             return;

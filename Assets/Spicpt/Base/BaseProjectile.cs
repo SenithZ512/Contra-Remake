@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// กระสุนของศัตรูในด่านฐาน พุ่งออกจากจอมาหาผู้เล่น
@@ -49,6 +49,10 @@ public class BaseProjectile : MonoBehaviour, IBaseDamageable
 
     [Header("Spin")]
     [SerializeField] private float spinSpeed;
+
+    [Header("Sound")]
+    /// <summary>ไม่เล่นเสียงปืนตอนเกิด ลูกกลิ้งกับวงแหวนไฟไม่ใช่กระสุนปืน</summary>
+    [SerializeField] private bool silentSpawn;
 
     [Header("Crouch")]
     /// <summary>
@@ -109,6 +113,11 @@ public class BaseProjectile : MonoBehaviour, IBaseDamageable
         }
 
         velocity = direction * speed + Vector2.up * launchUpBoost;
+
+        if (!silentSpawn)
+        {
+            GameAudio.EnemyShot();
+        }
     }
 
     /// <summary>
